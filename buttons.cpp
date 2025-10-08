@@ -44,7 +44,21 @@ struct Param param_selected = {
     .cc = false
 };
 
+void set_param_selected(int button, bool is_cc){
+    param_selected.button = button;
+    param_selected.alt = alt_held();
+    param_selected.cc = is_cc;
+}
+
+const int param_matrix[4][5] = {
+    {25,26,27,28,29},
+    {30,31,32,33,34},
+    {35,36,37,38,39},
+    {40,41,42,-1,-1}
+};
+
 int matrix_row_selected = 0;
+int matrix_column_selected = -1;
 
 bool alt_held(){
     return button_state[BUTTON_NUM_ALT] == 0;
@@ -98,9 +112,7 @@ static void matrix_pick(int num){
     struct CC cc = CCs[num];
     if(cc.p[0] !=0){
         set_led_bar(cc.p[0], cc.min, cc.max);
-        param_selected.alt=false;
-        param_selected.button = num;
-        param_selected.cc = true;
+        set_param_selected(num, true);
     }
 }
 
@@ -119,85 +131,27 @@ void handle_matrix_press(int num){
             matrix_row_selected = 3;
             break;
         case BUTTON_NUM_MATRIX_COLUMN_0:
-            switch(matrix_row_selected){
-                case 0:
-                    matrix_pick(25);
-                    break;
-                case 1:
-                    matrix_pick(30);
-                    break;
-                case 2:
-                    matrix_pick(35);
-                    break;
-                case 3:
-                    matrix_pick(40);
-                    break;
-                default:break;
-            }
+            matrix_column_selected = 0;
             break;
         case BUTTON_NUM_MATRIX_COLUMN_1:
-            switch(matrix_row_selected){
-                case 0:
-                    matrix_pick(26);
-                    break;
-                case 1:
-                    matrix_pick(31);
-                    break;
-                case 2:
-                    matrix_pick(36);
-                    break;
-                case 3:
-                    matrix_pick(41);
-                    break;
-                default:break;
-            }
+            matrix_column_selected = 1;
             break;
         case BUTTON_NUM_MATRIX_COLUMN_2:
-            switch(matrix_row_selected){
-                case 0:
-                    matrix_pick(27);
-                    break;
-                case 1:
-                    matrix_pick(32);
-                    break;
-                case 2:
-                    matrix_pick(37);
-                    break;
-                case 3:
-                    matrix_pick(42);
-                    break;
-                default:break;
-            }
+            matrix_column_selected = 2;
             break;
         case BUTTON_NUM_MATRIX_COLUMN_3:
-            switch(matrix_row_selected){
-                case 0:
-                    matrix_pick(28);
-                    break;
-                case 1:
-                    matrix_pick(33);
-                    break;
-                case 2:
-                    matrix_pick(38);
-                    break;
-                default:break;
-                }
+            matrix_column_selected = 3;
             break;
         case BUTTON_NUM_MATRIX_COLUMN_4:
-            switch(matrix_row_selected){
-                case 0:
-                    matrix_pick(29);
-                    break;
-                case 1:
-                    matrix_pick(34);
-                    break;
-                case 2:
-                    matrix_pick(39);
-                    break;
-                default:break;
-            }
+            matrix_column_selected = 4;
             break;
         default:break;
+    }
+    if(matrix_column_selected != -1){
+        int param = param_matrix[matrix_row_selected][matrix_column_selected];
+        if(param != -1){
+            matrix_pick(param);
+        }
     }
 }
 
@@ -211,9 +165,7 @@ void handle_button_press(int num){
     if(alt_held()){
         if(alt->p[0] != 0){ // there is a mod for that button
             set_led_bar(alt->p[0], alt->min, alt->max);
-            param_selected.button = num;
-            param_selected.alt = alt_held();        
-            param_selected.cc = false;        
+            set_param_selected(num, false);   
         } else if(alt_sel->p[0] != 0){ // there is an alt-sel for that button
             float cur = *alt_sel->p[0];
             if(cur < alt_sel->max)
@@ -228,9 +180,7 @@ void handle_button_press(int num){
     } else {
         if(mod->p[0] != 0){ // there is a mod for that button press
             set_led_bar(mod->p[0], mod->min, mod->max);
-            param_selected.button = num;
-            param_selected.alt = alt_held();
-            param_selected.cc = false;
+            set_param_selected(num, false);
         } else if(sel->p[0] != 0){ // there is a sel for that button press
             float cur = *sel->p[0];
             if(cur < sel->max){
@@ -257,10 +207,10 @@ void process_buttons(CTimer *timer){
                     button_state[i] = 0;
                     button_time[i] = now;
                     if(i == BUTTON_NUM_ENCODER){
-                        CLogger::Get ()->Write (FromButtons, LogDebug, "encoder pushed");
+                        // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder pushed");
                         *(Signals[0].gate[0]) = 1;
                     } else {
-                        CLogger::Get ()->Write (FromButtons, LogDebug, "button %d pushed", i);
+                        // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d pushed", i);
                         handle_button_press(i);
                     }
                 }
@@ -279,10 +229,10 @@ void process_buttons(CTimer *timer){
                     button_state[i] = 1;
                     button_time[i] = now;
                     if(i == BUTTON_NUM_ENCODER){
-                        CLogger::Get ()->Write (FromButtons, LogDebug, "encoder released");
+                        // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder released");
                         *(Signals[0].gate[0]) = 0;
                     } else {
-                        CLogger::Get ()->Write (FromButtons, LogDebug, "button %d released", i);
+                        // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d released", i);
                     }
 
                 }
@@ -292,8 +242,6 @@ void process_buttons(CTimer *timer){
 }
 
 void scan_buttons(CTimer *timer){
-    // CLogger::Get ()->Write (FromButtons, LogDebug, "scan_buttons");
-    
     for(u8 i=0; i<8; i++) // 8 pins per mux
     {
         // set the mux bits

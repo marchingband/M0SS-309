@@ -4,6 +4,8 @@ lfo_dest_pitch = 0;
 lfo_dest_cutoff = 1;
 lfo_dest_pw = 2;
 
+clamp(low, high, x) = min(max( low, x), high);
+
 envG(x) = hgroup("[0]env_amp",x);
 filEnvG(x) = hgroup("[1]env",x); 
 filG(x) = hgroup("[2]filter",x); 
@@ -40,7 +42,7 @@ os2_pw = osc2G(hslider("pw[alt:27][midi:14]",    0.5,  0.1, 0.5,   0.001));
 tune = osc2G(hslider("tune[mod:15][midi:15]", 0, 0, 10000, 100));
 dtn = osc2G(hslider("fine[alt:15][midi:16]", 0, 0, 100, 1));
 range = osc2G(hslider("hi-lo[mod:21][midi:17]", 0, 0, 1, 1));
-key_track = osc2G(hslider("kt[alt:21][midi:18]", 0, 0, 1, 1));
+key_track = osc2G(hslider("kt[alt:21][midi:18]", 1, 0, 1, 1));
 
 //mixer
 os1_vol  = mixerG(hslider("osc1[mod:19][midi:19]",      1,  0, 1,   0.001));
@@ -55,7 +57,7 @@ lfo_initial = lfoG(hslider("init[alt:17][midi:24]", 0, 0, 1, 0.001));
 lfo_saw = os.lf_saw(lfo_rate);
 lfo_sqr = os.lf_squarewave(lfo_rate);
 lfo_tri = os.lf_triangle(lfo_rate);
-lfo = lfo_saw, lfo_sqr, lfo_tri : ba.selectn(3, lfo_waveform) <: attach(vbargraph("lfo[lfo]", -1 , 1));
+lfo = lfo_saw, lfo_sqr, lfo_tri : ba.selectn(3, lfo_waveform) <: attach(vbargraph("lfo[lfo][hidden:1]", -1 , 1));
 
 //matrix
 lfo_os1 = matrixGlfo(hslider("lfo.os1[style:knob][midi:25]", 0, 0, 1, 0.001));
@@ -84,7 +86,7 @@ with {
     gate    = gateG(button("gate_%x"));
 
     env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate);
-    env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x]", 0 , 1));
+    env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
 
     os1_mod = lfo * lfo_os1 + env * env_os1 + noise * nse_os1 + os2 * os2_os1;
     pw1_mod = lfo * lfo_pw1 + env * env_pw1 + noise * nse_pw1 + os2 * os2_pw1;
@@ -93,11 +95,11 @@ with {
     pw2_mod = lfo * lfo_pw2 + env * env_pw2 + noise * nse_pw2;
 
     freq = hslider("freq_%x", 40, 0, 127, 1) : ba.midikey2hz;
-    os1_pitch = freq + os1_mod * 1000;
+    os1_pitch = freq * ba.cent2ratio(os1_mod * 12800);
     
     os2_pitch_ratio = ba.cent2ratio(tune + dtn);
     os2_pitch_tracked =  freq * os2_pitch_ratio;
-    os2_pitch = os2_pitch_ratio * 10, os2_pitch_tracked : ba.selectn(2, key_track) : _ * ba.cent2ratio(os2_mod * 1000);
+    os2_pitch = os2_pitch_ratio * 20, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod * 12800));
 
     os1_pw_post = os1_pw + pw1_mod;
     os2_pw_post = os2_pw + pw2_mod;
@@ -110,8 +112,8 @@ with {
 
     os2_tri = os.triangle(os2_pitch);
 
-    vcf_cutoff = ctf + vcf_mod;
-    vcf     = ve.moogLadder(vcf_cutoff, res);
+    vcf_cutoff = ctf + vcf_mod : ba.lin2LogGain : clamp(0,1);
+    vcf = ve.moogLadder(vcf_cutoff, res);
 
     os1 = os1_sqr, os1_saw : ba.selectn(2, os1_waveform);
     os2 = os2_sqr, os2_saw, os2_tri : ba.selectn(3, os2_waveform);

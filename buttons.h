@@ -21,6 +21,7 @@
 #include <circle/timer.h>
 
 extern int matrix_row_selected;
+extern int matrix_column_selected;
 
 struct Param {
     int button;

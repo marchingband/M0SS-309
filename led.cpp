@@ -139,26 +139,35 @@ void render_leds(void){
     set_matrix(3, 2, pixel_fade(0 * (*(CCs[42].p[0])))); // OS2->VCF
 
     // tint the active row
-    for(int i=0; i<5; i++){
-        tint_led_yellow(&matrix[matrix_row_selected][i]);
+    if(matrix_row_selected != -1){
+        for(int i=0; i<5; i++){
+            tint_led_yellow(&matrix[matrix_row_selected][i]);
+        }
+    }
+
+    // tint the active column
+    if(matrix_column_selected != -1){
+        for(int i=0; i<4; i++){
+            tint_led_yellow(&matrix[i][matrix_column_selected]);
+        }
     }
 
     // apply the matrix buffer
-    set_led(9,  matrix[0][0]); // LFO->PW2
-    set_led(10, matrix[0][1]); // LFO->OS2
+    set_led(9,  matrix[0][4]); // LFO->PW2
+    set_led(10, matrix[0][3]); // LFO->OS2
     set_led(11, matrix[0][2]); // LFO->VCF
-    set_led(12, matrix[0][3]); // LFO->PW1
-    set_led(13, matrix[0][4]); // LFO->OS1
+    set_led(12, matrix[0][1]); // LFO->PW1
+    set_led(13, matrix[0][0]); // LFO->OS1
     set_led(14, matrix[1][0]); // ENV->OS1
     set_led(15, matrix[1][1]); // ENV->PW1
     set_led(16, matrix[1][2]); // ENV->VCF
     set_led(17, matrix[1][3]); // ENV->OS2
     set_led(18, matrix[1][4]); // ENV->PW2
-    set_led(19, matrix[2][0]); // NSE->PW2
-    set_led(20, matrix[2][1]); // NSE->OS2
+    set_led(19, matrix[2][4]); // NSE->PW2
+    set_led(20, matrix[2][3]); // NSE->OS2
     set_led(21, matrix[2][2]); // NSE->VCF
-    set_led(22, matrix[2][3]); // NSE->PW1
-    set_led(23, matrix[2][4]); // NSE->OS1
+    set_led(22, matrix[2][1]); // NSE->PW1
+    set_led(23, matrix[2][0]); // NSE->OS1
     set_led(24, matrix[3][0]); // OS2->OS1
     set_led(25, matrix[3][1]); // OS2->PW1
     set_led(26, matrix[3][2]); // OS2->VCF
