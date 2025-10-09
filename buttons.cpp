@@ -27,6 +27,8 @@ u8 button_pushes[NUM_BUTTONS]               = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 u8 button_state[NUM_BUTTONS]                = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 unsigned int button_time[NUM_BUTTONS]       = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+u64 last_encoder_click = 0;
+
 const u8 mux_code[8][3] = {
     {0,0,0},
     {0,0,1},
@@ -44,12 +46,6 @@ struct Param param_selected = {
     .cc = false
 };
 
-void set_param_selected(int button, bool is_cc){
-    param_selected.button = button;
-    param_selected.alt = alt_held();
-    param_selected.cc = is_cc;
-}
-
 const int param_matrix[4][5] = {
     {25,26,27,28,29},
     {30,31,32,33,34},
@@ -64,14 +60,23 @@ bool alt_held(){
     return button_state[BUTTON_NUM_ALT] == 0;
 }
 
+void set_param_selected(int button, bool is_cc){
+    param_selected.button = button;
+    param_selected.alt = alt_held();
+    param_selected.cc = is_cc;
+}
+
 void set_param_vals(float *(&vals)[NUM_DSP], float val){
     for(int i=0; i<NUM_DSP; i++){
         *(vals[i]) = val;
     }
 }
 
-void handle_encoder(bool up){
-    CLogger::Get ()->Write (FromButtons, LogDebug, "handle_encoder %s", up ? "up" : "down");
+void handle_encoder(bool up, u64 now){
+    // CLogger::Get ()->Write (FromButtons, LogDebug, "handle_encoder %s", up ? "up" : "down");
+    u64 passed = now - last_encoder_click;
+    last_encoder_click = now;
+    int click_multiplier = passed > 100000 ? 1 : passed > 50000 ? 4 : passed > 10000 ? 10 : 30;
     if(param_selected.button == -1){
         return;
     }
@@ -79,7 +84,7 @@ void handle_encoder(bool up){
         struct Alt *alt = &Alts[param_selected.button];
         if(alt->p[0] != 0){
             float cur = *(alt->p[0]);
-            float step = alt->step * alt->mul;
+            float step = alt->step * alt->mul * click_multiplier;
             float next = up ? cur + step : cur - step;
             float clamped = next > alt->max ? alt->max : next < alt->min ? alt->min : next;
             set_param_vals(alt->p, clamped);
@@ -89,7 +94,7 @@ void handle_encoder(bool up){
         struct CC *cc = &CCs[param_selected.button];
         if(cc->p[0] != 0){
             float cur = *(cc->p[0]);
-            float step = cc->step * cc->mul;
+            float step = cc->step * cc->mul * click_multiplier;
             float next = up ? cur + step : cur - step;
             float clamped = next > cc->max ? cc->max : next < cc->min ? cc->min : next;
             set_param_vals(cc->p, clamped);
@@ -99,7 +104,7 @@ void handle_encoder(bool up){
         struct Mod *mod = &Mods[param_selected.button];
         if(mod->p[0] != 0){
             float cur = *(mod->p[0]);
-            float step = mod->step * mod->mul;
+            float step = mod->step * mod->mul * click_multiplier;
             float next = up ? cur + step : cur - step;
             float clamped = next > mod->max ? mod->max : next < mod->min ? mod->min : next;
             set_param_vals(mod->p, clamped);

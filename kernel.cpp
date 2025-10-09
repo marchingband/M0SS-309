@@ -120,13 +120,6 @@ void CKernel::MIDIPacketHandler (unsigned nCable, u8 *pPacket, unsigned nLength)
 {
 	for(unsigned i=0; i< nLength; i++){
 		handle_midi_byte(pPacket[i]);
-		// s_pKernel->m_Logger.Write (FromKernel, LogNotice, "%d", pPacket[i]);
-		// if(parse(pPacket[i]))
-		// {
-		// 	u8 *msg = getMidiMsg();
-		// 	u8 len = getMidiMsgLen();
-		// 	s_pKernel->m_Logger.Write (FromKernel, LogNotice, "got midi message len %d", len);
-		// }
 	}
 }
 
@@ -137,12 +130,14 @@ void CKernel::USBDeviceRemovedHandler (CDevice *pDevice, void *pContext)
 
 void CKernel::EventHandler (CKY040::TEvent Event, void *pParam)
 {
+	CKernel *pThis = static_cast<CKernel *>(pParam);
+	u64 now = pThis->m_Timer.GetClockTicks64();
 	switch (Event){
 		case CKY040::EventClockwise:
-			handle_encoder(true);
+			handle_encoder(true, now);
 			break;
-			case CKY040::EventCounterclockwise:
-			handle_encoder(false);
+		case CKY040::EventCounterclockwise:
+			handle_encoder(false, now);
 			break;
 		default: break;
 	}
@@ -154,14 +149,10 @@ TShutdownMode CKernel::Run (void)
 	m_RotaryEncoder.RegisterEventHandler (EventHandler, this);
 	dsp_init(&m_Timer);
 	init_midi_parser();
-	// m_PWMSoundDevice->Start();
-	if (!CI2SSoundDevice->AllocateQueue (QUEUE_SIZE_MSECS))
-	{
+	if (!CI2SSoundDevice->AllocateQueue (QUEUE_SIZE_MSECS)){
 		m_Logger.Write (FromKernel, LogPanic, "Cannot allocate output sound queue");
 	}
-	// CI2SSoundDevice->SetWriteFormat (SoundFormatSigned16, 2);
-	if(!CI2SSoundDevice->Start())
-	{
+	if(!CI2SSoundDevice->Start()){
 		m_Logger.Write (FromKernel, LogPanic, "Cannot start sound");
 	}
 
@@ -172,8 +163,7 @@ TShutdownMode CKernel::Run (void)
 		render_leds();
 		read_uart();
 		assert (m_pUSB);
-		if (m_pUSB->UpdatePlugAndPlay ())
-		{
+		if (m_pUSB->UpdatePlugAndPlay ()){
 			m_pMIDIDevice = (CUSBMIDIDevice *) CDeviceNameService::Get ()->GetDevice ("umidi1", FALSE);
 			if (m_pMIDIDevice != 0)
 			{
@@ -183,23 +173,8 @@ TShutdownMode CKernel::Run (void)
 				m_pMIDIDevice->RegisterRemovedHandler (USBDeviceRemovedHandler);
 			}
 		}
-		m_Timer.MsDelay(5);
+		m_Timer.MsDelay(2);
 	}
-	
-	// 	assert (m_pUSB);
-	// 	if (m_pUSB->UpdatePlugAndPlay ())
-	// 	{
-	// 		m_pMIDIDevice = (CUSBMIDIDevice *) CDeviceNameService::Get ()->GetDevice ("umidi1", FALSE);
-	// 		if (m_pMIDIDevice != 0)
-	// 		{
-	// 			m_Logger.Write (FromKernel, LogNotice, "Found midi device");
-	// 			s_pKernel = this;
-	// 			m_pMIDIDevice->RegisterPacketHandler (MIDIPacketHandler);
-	// 			m_pMIDIDevice->RegisterRemovedHandler (USBDeviceRemovedHandler);
-	// 		}
-	// 	}
-	// 	m_Timer.MsDelay(500);
-	// }
 
 	return ShutdownHalt;
 }

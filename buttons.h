@@ -31,6 +31,6 @@ struct Param {
 
 void scan_buttons(CTimer *timer);
 void process_buttons(CTimer *timer);
-void handle_encoder(bool up);
+void handle_encoder(bool up, u64 now);
 
 #endif
