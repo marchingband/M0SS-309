@@ -94,7 +94,8 @@ static struct Pixel pixel_fade(float val){
 
 void render_leds(void){
 
-    set_led(0, *(Sels[0].p[0]) ? Red : Off); // SYNC
+    set_led(0, *(Sels[3].p[0]) ? Red : Off);        // SYNC
+
     set_led(2, *(Sels[9].p[0]) == 0 ? Green : Off); // OSC 1 SAW
     set_led(1, *(Sels[9].p[0]) == 1 ? Green : Off); // OSC 1 SQR
 
@@ -116,27 +117,27 @@ void render_leds(void){
     }
 
     // modulation signals
-    set_matrix(0, 0, pixel_fade(lfo * (*(CCs[29].p[0])))); // LFO->PW2
-    set_matrix(0, 1, pixel_fade(lfo * (*(CCs[28].p[0])))); // LFO->OS2
-    set_matrix(0, 2, pixel_fade(lfo * (*(CCs[27].p[0])))); // LFO->VCF
-    set_matrix(0, 3, pixel_fade(lfo * (*(CCs[26].p[0])))); // LFO->PW1
-    set_matrix(0, 4, pixel_fade(lfo * (*(CCs[25].p[0])))); // LFO->OS1
+    set_matrix(0, 0, pixel_fade(lfo * (*(CCs[26].p[0])))); // LFO->OS1
+    set_matrix(0, 1, pixel_fade(lfo * (*(CCs[27].p[0])))); // LFO->PW1
+    set_matrix(0, 2, pixel_fade(lfo * (*(CCs[28].p[0])))); // LFO->VCF
+    set_matrix(0, 3, pixel_fade(lfo * (*(CCs[29].p[0])))); // LFO->OS2
+    set_matrix(0, 4, pixel_fade(lfo * (*(CCs[30].p[0])))); // LFO->PW2
 
-    set_matrix(1, 0, pixel_fade(env * (*(CCs[30].p[0])))); // ENV->OS1 
-    set_matrix(1, 1, pixel_fade(env * (*(CCs[31].p[0])))); // ENV->PW1 
-    set_matrix(1, 2, pixel_fade(env * (*(CCs[32].p[0])))); // ENV->VCF 
-    set_matrix(1, 3, pixel_fade(env * (*(CCs[33].p[0])))); // ENV->OS2 
-    set_matrix(1, 4, pixel_fade(env * (*(CCs[34].p[0])))); // ENV->PW2 
+    set_matrix(1, 0, pixel_fade(env * (*(CCs[31].p[0])))); // ENV->OS1 
+    set_matrix(1, 1, pixel_fade(env * (*(CCs[32].p[0])))); // ENV->PW1 
+    set_matrix(1, 2, pixel_fade(env * (*(CCs[33].p[0])))); // ENV->VCF 
+    set_matrix(1, 3, pixel_fade(env * (*(CCs[34].p[0])))); // ENV->OS2 
+    set_matrix(1, 4, pixel_fade(env * (*(CCs[35].p[0])))); // ENV->PW2 
 
-    set_matrix(2, 0, pixel_fade(0 * (*(CCs[39].p[0])))); // NSE->PW2
-    set_matrix(2, 1, pixel_fade(0 * (*(CCs[38].p[0])))); // NSE->OS2
-    set_matrix(2, 2, pixel_fade(0 * (*(CCs[37].p[0])))); // NSE->VCF
-    set_matrix(2, 3, pixel_fade(0 * (*(CCs[36].p[0])))); // NSE->PW1
-    set_matrix(2, 4, pixel_fade(0 * (*(CCs[35].p[0])))); // NSE->OS1
+    set_matrix(2, 0, pixel_fade(0 * (*(CCs[36].p[0])))); // NSE->OS1
+    set_matrix(2, 1, pixel_fade(0 * (*(CCs[37].p[0])))); // NSE->PW1
+    set_matrix(2, 2, pixel_fade(0 * (*(CCs[38].p[0])))); // NSE->VCF
+    set_matrix(2, 3, pixel_fade(0 * (*(CCs[39].p[0])))); // NSE->OS2
+    set_matrix(2, 4, pixel_fade(0 * (*(CCs[40].p[0])))); // NSE->PW2
 
-    set_matrix(3, 0, pixel_fade(0 * (*(CCs[40].p[0])))); // OS2->OS1
-    set_matrix(3, 1, pixel_fade(0 * (*(CCs[41].p[0])))); // OS2->PW1
-    set_matrix(3, 2, pixel_fade(0 * (*(CCs[42].p[0])))); // OS2->VCF
+    set_matrix(3, 0, pixel_fade(0 * (*(CCs[41].p[0])))); // OS2->OS1
+    set_matrix(3, 1, pixel_fade(0 * (*(CCs[42].p[0])))); // OS2->PW1
+    set_matrix(3, 2, pixel_fade(0 * (*(CCs[43].p[0])))); // OS2->VCF
 
     // tint the active row
     if(matrix_row_selected != -1){

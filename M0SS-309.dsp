@@ -42,7 +42,7 @@ os2_pw = osc2G(hslider("pw[alt:27][midi:14]",    0.5,  0.1, 0.5,   0.001));
 tune = osc2G(hslider("tune[mod:15][midi:15]", 0, 0, 10000, 100));
 dtn = osc2G(hslider("fine[alt:15][midi:16]", 0, 0, 100, 1));
 range = osc2G(hslider("hi-lo[mod:21][midi:17]", 0, 0, 1, 1));
-key_track = osc2G(hslider("kt[alt:21][midi:18]", 1, 0, 1, 1));
+key_track = osc2G(hslider("kt[alt-sel:21][midi:18]", 1, 0, 1, 1));
 
 //mixer
 os1_vol  = mixerG(hslider("osc1[mod:19][midi:19]",      1,  0, 1,   0.001));

@@ -1,0 +1,53 @@
+import("stdfaust.lib");
+
+hs = environment {
+    polyblep(period, step) = (0, L(step), R(step - period)) : select3(sel)
+    with {
+        sel = (step < 1) + 2 * (step > (period - 1));
+        L(x) = 2*x - x*x - 1; // Used near the left end of the interval
+        R(x) = 2*x + x*x + 1; // Used near the right end of the interval
+    };
+
+    hs_sq(m_freq, s_freq, m_duty, s_duty) = out
+        with {
+            m_period = ma.SR / m_freq;
+            m_step = os.phasor(m_period, ma.SR / m_period);
+            m_duty_period = m_period * m_duty;
+            m_base = ba.if(m_step < m_duty_period, -1, 1);
+            m_phase = m_step / m_period;
+            m_edge_rising = polyblep(m_period, m_step);
+            m_edge_falling = polyblep(m_period, ma.modulo(m_step - m_duty_period, m_period));
+            m_out = m_base - m_edge_falling + m_edge_rising;
+            m_reset = m_step < 1;
+
+            s_period = ma.SR / s_freq;
+            s_duty_period = s_period * s_duty;
+            s_step = os.hsp_phasor(s_period, ma.SR / s_period, m_reset, m_reset * m_phase * (m_period / s_period));
+            s_base = ba.if(s_step < s_duty_period, -1, 1);
+            s_edge_rising = polyblep(s_period, s_step);
+            s_edge_falling = polyblep(s_period, ma.modulo(s_step - s_duty_period, s_period));
+            s_out = s_base + s_edge_rising - s_edge_falling + ba.if(s_step >= s_duty_period, m_edge_rising, 0);
+
+            out = s_out;
+        };
+
+    hs_saw(m_freq, s_freq) = s, m, r : poly, poly, _ : D : gate, ! :> _
+    letrec {
+        'r = m < m' <: vbargraph("reset", 0, 1);
+        's = ba.if(m < m', 0, (s + p, 1.0 : fmod))
+        with {
+            p = (1.0/(float(ma.SR)/float(s_freq)));
+        };
+        'm = m + p, 1 : fmod
+        with {
+            p = (1.0/(float(ma.SR)/float(m_freq)));
+        };
+    };
+    poly(x) = (x * 2 - 1) * (x * 2 - 1);
+    D(a, b, c) = ba.if(c, b1, a1), b1
+    with {
+        a1 = ((a - a')/(2.0/(float(ma.SR)/float(f1)))/2.0);
+        b1 = ((b - b')/(2.0/(float(ma.SR)/float(f2)))/2.0);
+    };
+    gate = *(1@(2));
+};

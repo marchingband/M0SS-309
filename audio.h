@@ -19,7 +19,8 @@
 #define MIDI_CC_RESET 121
 
 #define SAMPLE_RATE	48000
-#define CHUNK_SIZE	2048
+// #define CHUNK_SIZE	2048
+#define CHUNK_SIZE 1024 * 4
 
 class CPDI2S : public CI2SSoundBaseDevice
 {
