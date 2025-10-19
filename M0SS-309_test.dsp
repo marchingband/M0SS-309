@@ -62,24 +62,24 @@ lfo_tri = os.lf_triangle(lfo_rate);
 lfo = lfo_saw, lfo_sqr, lfo_tri : ba.selectn(3, lfo_waveform) <: attach(vbargraph("lfo[lfo][hidden:1]", -1 , 1));
 
 //matrix
-lfo_os1 = matrixGlfo(hslider("lfo.os1[style:knob][midi:26]", 0, 0, 1, 0.001));
-lfo_pw1 = matrixGlfo(hslider("lfo.pw1[style:knob][midi:27]", 0, 0, 1, 0.001));
-lfo_vcf = matrixGlfo(hslider("lfo.vcf[style:knob][midi:28]", 0, 0, 1, 0.001));
-lfo_os2 = matrixGlfo(hslider("lfo.os2[style:knob][midi:29]", 0, 0, 1, 0.001));
-lfo_pw2 = matrixGlfo(hslider("lfo.pw2[style:knob][midi:30]", 0, 0, 1, 0.001));
-env_os1 = matrixGenv(hslider("env.os1[style:knob][midi:31]", 0, 0, 1, 0.001));
-env_pw1 = matrixGenv(hslider("env.pw1[style:knob][midi:32]", 0, 0, 1, 0.001));
-env_vcf = matrixGenv(hslider("env.vcf[style:knob][midi:33]", 0, 0, 1, 0.001));
-env_os2 = matrixGenv(hslider("env.os2[style:knob][midi:34]", 0, 0, 1, 0.001));
-env_pw2 = matrixGenv(hslider("env.pw2[style:knob][midi:35]", 0, 0, 1, 0.001));
-nse_os1 = matrixGnse(hslider("nse.os1[style:knob][midi:36]", 0, 0, 1, 0.001));
-nse_pw1 = matrixGnse(hslider("nse.pw1[style:knob][midi:37]", 0, 0, 1, 0.001));
-nse_vcf = matrixGnse(hslider("nse.vcf[style:knob][midi:38]", 0, 0, 1, 0.001));
-nse_os2 = matrixGnse(hslider("nse.os2[style:knob][midi:39]", 0, 0, 1, 0.001));
-nse_pw2 = matrixGnse(hslider("nse.pw2[style:knob][midi:40]", 0, 0, 1, 0.001));
-os2_os1 = matrixGos2(hslider("os2.os1[style:knob][midi:41]", 0, 0, 1, 0.001));
-os2_pw1 = matrixGos2(hslider("os2.pw1[style:knob][midi:42]", 0, 0, 1, 0.001));
-os2_vcf = matrixGos2(hslider("os2.vcf[style:knob][midi:43]", 0, 0, 1, 0.001));
+lfo_os1 = matrixGlfo(hslider("lfo.os1[style:knob][midi:26]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+lfo_pw1 = matrixGlfo(hslider("lfo.pw1[style:knob][midi:27]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+lfo_vcf = matrixGlfo(hslider("lfo.vcf[style:knob][midi:28]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+lfo_os2 = matrixGlfo(hslider("lfo.os2[style:knob][midi:29]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+lfo_pw2 = matrixGlfo(hslider("lfo.pw2[style:knob][midi:30]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+env_os1 = matrixGenv(hslider("env.os1[style:knob][midi:31]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+env_pw1 = matrixGenv(hslider("env.pw1[style:knob][midi:32]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+env_vcf = matrixGenv(hslider("env.vcf[style:knob][midi:33]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+env_os2 = matrixGenv(hslider("env.os2[style:knob][midi:34]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+env_pw2 = matrixGenv(hslider("env.pw2[style:knob][midi:35]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+nse_os1 = matrixGnse(hslider("nse.os1[style:knob][midi:36]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+nse_pw1 = matrixGnse(hslider("nse.pw1[style:knob][midi:37]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+nse_vcf = matrixGnse(hslider("nse.vcf[style:knob][midi:38]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+nse_os2 = matrixGnse(hslider("nse.os2[style:knob][midi:39]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+nse_pw2 = matrixGnse(hslider("nse.pw2[style:knob][midi:40]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+os2_os1 = matrixGos2(hslider("os2.os1[style:knob][midi:41]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+os2_pw1 = matrixGos2(hslider("os2.pw1[style:knob][midi:42]", 0, 0, 1, 0.001) : ba.lin2LogGain);
+os2_vcf = matrixGos2(hslider("os2.vcf[style:knob][midi:43]", 0, 0, 1, 0.001) : ba.lin2LogGain);
 
 
 voice(x) = out
@@ -98,11 +98,11 @@ with {
     pw2_mod = lfo * lfo_pw2 + env * env_pw2 + noise * nse_pw2;
 
     freq = hslider("freq_%x", 40, 0, 127, 1) : ba.midikey2hz;
-    os2_pitch = freq * ba.cent2ratio(os2_mod * 12800);
+    os2_pitch = freq * ba.cent2ratio(os2_mod * 6400);
     
     os1_pitch_ratio = ba.cent2ratio(tune + dtn);
     os1_pitch_tracked =  freq * os1_pitch_ratio;
-    os1_pitch = os1_pitch_ratio * 20, os1_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os1_mod * 12800));
+    os1_pitch = os1_pitch_ratio * 20, os1_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os1_mod * 6400));
 
     os1_pw_post = os1_pw + pw1_mod;
     os2_pw_post = os2_pw + pw2_mod;
@@ -130,4 +130,5 @@ with {
     out = audio : vcf : *(env_amp);
 };
 
-process = par(x, 2, voice(x)) :> *(0.2) <:_,_;
+process = par(x, 2, voice(x)) :> *(0.8) <:_,_;
+// process = par(x, 2, voice(x)) :> *(0.2) <:_,_;

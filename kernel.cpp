@@ -42,7 +42,8 @@ CKernel::CKernel (void)
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
 	m_pUSB (new CUSBHCIDevice (&m_Interrupt, &m_Timer, TRUE)), // TRUE: enable plug-and-play
 	m_GPIOManager (&m_Interrupt),
-	m_RotaryEncoder (KY040_CLK_PIN, KY040_DT_PIN, KY040_SW_PIN, &m_GPIOManager),
+	// m_RotaryEncoder (KY040_CLK_PIN, KY040_DT_PIN, KY040_SW_PIN, &m_GPIOManager),
+	m_RotaryEncoder (KY040_CLK_PIN, KY040_DT_PIN, KY040_SW_PIN, 0),
 	m_VoiceManger(CMemorySystem::Get ()),
 	m_Serial(&m_Interrupt, false)
 {
@@ -98,7 +99,7 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		// m_PWMSoundDevice = new CPDPWM(&m_Interrupt);
-		CI2SSoundDevice = new CPDI2S(&m_Interrupt);
+		CI2SSoundDevice = new CPDI2S(&m_Interrupt, &m_RotaryEncoder);
 	}
 
 	led_init();
@@ -160,7 +161,7 @@ TShutdownMode CKernel::Run (void)
 		// main loop
 		scan_buttons(&m_Timer);
 		process_buttons(&m_Timer);
-		render_leds();
+		// render_leds();
 		read_uart();
 		assert (m_pUSB);
 		if (m_pUSB->UpdatePlugAndPlay ()){
@@ -173,7 +174,8 @@ TShutdownMode CKernel::Run (void)
 				m_pMIDIDevice->RegisterRemovedHandler (USBDeviceRemovedHandler);
 			}
 		}
-		m_Timer.MsDelay(2);
+		m_RotaryEncoder.Update();
+		// m_Timer.MsDelay(2);
 	}
 
 	return ShutdownHalt;

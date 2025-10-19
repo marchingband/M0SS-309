@@ -3,7 +3,7 @@
 
 // #include <circle/sound/pwmsoundbasedevice.h>
 #include <circle/sound/i2ssoundbasedevice.h>
-
+#include <sensor/ky040.h>
 
 #define MIDI_NOTE_OFF 8
 #define MIDI_NOTE_ON 9
@@ -19,13 +19,14 @@
 #define MIDI_CC_RESET 121
 
 #define SAMPLE_RATE	48000
-// #define CHUNK_SIZE	2048
-#define CHUNK_SIZE 1024 * 4
+#define CHUNK_SIZE	1024
+// #define CHUNK_SIZE	1024 * 2
+// #define CHUNK_SIZE 1024 * 4
 
 class CPDI2S : public CI2SSoundBaseDevice
 {
 public:
-    CPDI2S(CInterruptSystem *pInterrupt);
+    CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder);
     ~CPDI2S(void);
     unsigned GetChunk (u32 *pBuffer, unsigned nChunkSize);
 };

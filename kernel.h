@@ -53,7 +53,7 @@ private:
 	CLogger				m_Logger;
 	CUSBController		*m_pUSB;
 	CGPIOManager		m_GPIOManager;
-	CKY040			m_RotaryEncoder;
+	CKY040				m_RotaryEncoder;
 	CUSBMIDIDevice     	*volatile m_pMIDIDevice;
 	CVoiceManager		m_VoiceManger;
 

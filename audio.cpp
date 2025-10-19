@@ -11,6 +11,7 @@
 #include "strings.h"
 #include "dsp.h"
 #include "midiXparser.h"
+#include "led.h"
 
 static const char FromAudio[] = "audio";
 
@@ -22,11 +23,13 @@ extern float **buffers_2;
 extern float **buffers_3;
 
 float **outBuffers = nullptr;
+static CKY040 *encoder = nullptr;
 
-CPDI2S::CPDI2S(CInterruptSystem *pInterrupt)
+CPDI2S::CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder)
 :   CI2SSoundBaseDevice (pInterrupt, SAMPLE_RATE, CHUNK_SIZE, false)
 // :   CPWMSoundBaseDevice (pInterrupt, 44100, CHUNK_SIZE)
 {
+    encoder = m_RotaryEncoder;
 }
 
 CPDI2S::~CPDI2S(void)
@@ -42,6 +45,22 @@ u32 tos24(s32 in){
     return in;
 }
 
+u32 ftos24(float in){
+    float scaled = in * 8388608.0f; // 2^23
+    int32_t q23 = (int32_t)scaled;
+
+    // 2. Saturate
+    if (q23 >  0x7FFFFF) q23 =  0x7FFFFF;
+    if (q23 < -0x7FFFFF) q23 = -0x7FFFFF;
+
+    bool neg = q23 < 0;
+    q23 &= 0x7FFFFF;
+    if(neg){
+        q23 |= 0x800000;
+    }
+    return (uint32_t)q23;
+}
+
 unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
 {
     // CLogger::Get ()->Write (FromAudio, LogDebug, "Get Chunk");
@@ -50,6 +69,8 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
     int dc = max / 2;
     // float scale = 0.1;
     float scale = 0.9;
+
+    CLogger::Get ()->Write (FromAudio, LogDebug, "min: %d max: %d", min, max);
     
     int numFrames = CHUNK_SIZE / 2;
     
@@ -71,10 +92,13 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
     core_1_run = true;
     core_2_run = true;
     core_3_run = true;
+
+    render_leds();
     
     // wait until they are done
     while (core_1_run || core_2_run || core_3_run)
     {
+        encoder->Update();
     }
 
     // CLogger::Get ()->Write (FromAudio, LogDebug, "All cores done");
@@ -88,8 +112,10 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
     }
 
     for(int i=0; i<numFrames; i++){
-        s32 left = tos24((outBuffers[0][i] * scale * dc) + dc);
-        s32 right = tos24((outBuffers[1][i] * scale * dc) + dc);
+        s32 left = ftos24(outBuffers[0][i]);
+        s32 right = ftos24(outBuffers[1][i]);
+        // s32 left = tos24((outBuffers[0][i] * scale * dc) + dc);
+        // s32 right = tos24((outBuffers[1][i] * scale * dc) + dc);
         pBuffer[i * 2] = left;
         pBuffer[i * 2 + 1] = right;
     }
