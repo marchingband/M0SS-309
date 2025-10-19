@@ -4,6 +4,7 @@
 #include <circle/timer.h>
 #include "buttons.h"
 
+// #define NUM_VOICES 2
 #define NUM_VOICES 3
 #define NUM_DSP 3
 #define NUM_CC 44 // must be the highest CC value + 1, CC's are 1 indexed. This represents the [midi:n] from the .dsp file
@@ -68,6 +69,7 @@ struct Sigs {
     float *gate[NUM_VOICES];
     float *lfo;
     float *env[NUM_VOICES];
+    float *env_amp[NUM_VOICES];
     // float *pitch_bend;
     // float *vca;
     // float *fine_tune;

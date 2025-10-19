@@ -87,7 +87,7 @@ with {
     noise   = no.noise;
     gate    = gateG(button("gate_%x"));
 
-    env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate);
+    env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
     env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
 
     os1_mod = lfo * lfo_os1 + env * env_os1 + noise * nse_os1 + os2 * os2_os1;
@@ -118,17 +118,15 @@ with {
     vcf_cutoff = ctf + vcf_mod : ba.lin2LogGain : clamp(0,1);
     vcf = ve.moogLadder(vcf_cutoff, res);
 
-    os1_free = os1_sqr, os1_saw : ba.selectn(2, os1_waveform);
-    os2 = os2_sqr, os2_saw, os2_tri : ba.selectn(3, os2_waveform);
+    os1_free = os1_saw, os1_sqr : ba.selectn(2, os1_waveform);
+    os2 = os2_saw, os2_sqr, os2_tri : ba.selectn(3, os2_waveform);
 
-    s_wav = ba.if(os1_waveform == 0, 1, 0);
-    m_wav = ba.if(os2_waveform == 0, 1, 0);
-    os1_sync = hs.slave_with_solo(os2_pitch, os1_pitch, m_wav, s_wav, os2_pw_post, os1_pw_post);
+    os1_sync = hs.slave_with_solo(os2_pitch, os1_pitch, os2_waveform, os1_waveform, os2_pw_post, os1_pw_post);
     os1 = os1_free, os1_sync : select2(sync);
 
     audio = os1 * os1_vol + os2 * os2_vol + noise * noise_vol;
     out = audio : vcf : *(env_amp);
 };
 
-process = par(x, 2, voice(x)) :> *(0.8) <:_,_;
-// process = par(x, 2, voice(x)) :> *(0.2) <:_,_;
+process = par(x, 3, voice(x)) :> *(0.4) <:_,_;
+// process = par(x, 3, voice(x)) :> *(0.2) <:_,_;

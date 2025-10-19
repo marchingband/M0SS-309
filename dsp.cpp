@@ -27,32 +27,33 @@ struct Alt Alts[NUM_BUTTONS] = {0};
 struct Sel Sels[NUM_BUTTONS] = {0};
 struct AltSel AltSels[NUM_BUTTONS] = {0};
 struct Asb Asbs[NUM_BUTTONS] = {0};
-struct Sigs Signals[NUM_DSP] = {
-    {
-        .pitch = {0,0,0},
-        .gate = {0,0,0},
-        .lfo = 0,
-        .env = {0,0,0},
-        // .pitch_bend = 0,
-        // .vca = 0
-    },
-    {
-        .pitch = {0,0,0},
-        .gate = {0,0,0},
-        .lfo = 0,
-        .env = {0,0,0},
-        // .pitch_bend = 0,
-        // .vca = 0
-    },
-    {
-        .pitch = {0,0,0},
-        .gate = {0,0,0},
-        .lfo = 0,
-        .env = {0,0,0},
-        // .pitch_bend = 0,
-        // .vca = 0
-    }
-};
+// struct Sigs Signals[NUM_DSP] = {
+//     {
+//         .pitch = {0,0,0},
+//         .gate = {0,0,0},
+//         .lfo = 0,
+//         .env = {0,0,0},
+//         // .pitch_bend = 0,
+//         // .vca = 0
+//     },
+//     {
+//         .pitch = {0,0,0},
+//         .gate = {0,0,0},
+//         .lfo = 0,
+//         .env = {0,0,0},
+//         // .pitch_bend = 0,
+//         // .vca = 0
+//     },
+//     {
+//         .pitch = {0,0,0},
+//         .gate = {0,0,0},
+//         .lfo = 0,
+//         .env = {0,0,0},
+//         // .pitch_bend = 0,
+//         // .vca = 0
+//     }
+// };
+struct Sigs Signals[NUM_DSP] = {0};
 
 void extract(const char *name, float *p, float init, float min, float max, float step){
     // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "extract %s", name);
@@ -183,9 +184,9 @@ void extract(const char *name, float *p, float init, float min, float max, float
 };
 
 void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
+    
     const char *env_prefix = "env_";
     size_t env_prefix_len = strlen(env_prefix);
-
     if (strncmp(key, env_prefix, env_prefix_len) == 0) // its an env
     {
         const char *number_part = key + env_prefix_len;
@@ -194,6 +195,21 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
         if (*endptr == '\0') {
             Signals[cur_core_init].env[value] = p;
             CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to env %d in dsp %d", value, cur_core_init);
+        } else {
+            // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "Invalid number format after 'gate_'");
+        }    
+    } 
+
+    const char *env_amp_prefix = "env_amp_";
+    size_t env_amp_prefix_len = strlen(env_amp_prefix);
+    if (strncmp(key, env_amp_prefix, env_amp_prefix_len) == 0) // its an env
+    {
+        const char *number_part = key + env_amp_prefix_len;
+        char *endptr;
+        int value = (int)strtol(number_part, &endptr);
+        if (*endptr == '\0') {
+            Signals[cur_core_init].env_amp[value] = p;
+            CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to env_amp %d in dsp %d", value, cur_core_init);
         } else {
             // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "Invalid number format after 'gate_'");
         }    

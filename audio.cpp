@@ -70,7 +70,7 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
     // float scale = 0.1;
     float scale = 0.9;
 
-    CLogger::Get ()->Write (FromAudio, LogDebug, "min: %d max: %d", min, max);
+    // CLogger::Get ()->Write (FromAudio, LogDebug, "min: %d max: %d", min, max);
     
     int numFrames = CHUNK_SIZE / 2;
     
