@@ -8,10 +8,14 @@
 #include <circle/util.h>
 
 #include "audio.h"
+#include "buttons.h"
 #include "strings.h"
 #include "dsp.h"
 #include "midiXparser.h"
 #include "led.h"
+#include "cchorus.h"
+
+#define NUM_FRAMES (CHUNK_SIZE / 2)
 
 static const char FromAudio[] = "audio";
 
@@ -22,6 +26,11 @@ extern float **buffers_1;
 extern float **buffers_2;
 extern float **buffers_3;
 
+extern bool chorus_on;
+
+mychorus *dsp0 = NULL;
+
+float **inBuffers = nullptr;
 float **outBuffers = nullptr;
 static CKY040 *encoder = nullptr;
 
@@ -30,6 +39,23 @@ CPDI2S::CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder)
 // :   CPWMSoundBaseDevice (pInterrupt, 44100, CHUNK_SIZE)
 {
     encoder = m_RotaryEncoder;
+    if(outBuffers == nullptr){
+        outBuffers = new float*[2];
+        for (int i = 0; i < 2; ++i) {
+            outBuffers[i] = new float[NUM_FRAMES];
+        }
+        CLogger::Get ()->Write (FromAudio, LogDebug, "Allocated outBuffers");
+    }
+    if(inBuffers == nullptr){
+        inBuffers = new float*[2];
+        for (int i = 0; i < 2; ++i) {
+            inBuffers[i] = new float[NUM_FRAMES];
+        }
+        CLogger::Get ()->Write (FromAudio, LogDebug, "Allocated inBuffers");
+    }
+    dsp0 = newmychorus();
+    initmychorus(dsp0, 48000);
+    // buildUserInterfacemydsp(dsp, &ui_glue);
 }
 
 CPDI2S::~CPDI2S(void)
@@ -63,30 +89,10 @@ u32 ftos24(float in){
 
 unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
 {
-    // CLogger::Get ()->Write (FromAudio, LogDebug, "Get Chunk");
-    int min = GetRangeMin();
-    int max = GetRangeMax();
-    int dc = max / 2;
-    // float scale = 0.1;
-    float scale = 0.9;
-
+    // int min = GetRangeMin();
+    // int max = GetRangeMax();
     // CLogger::Get ()->Write (FromAudio, LogDebug, "min: %d max: %d", min, max);
-    
-    int numFrames = CHUNK_SIZE / 2;
-    
-    if(outBuffers == nullptr){
-        outBuffers = new float*[2];
-        for (int i = 0; i < 2; ++i) {
-            outBuffers[i] = new float[numFrames];
-        }
-        CLogger::Get ()->Write (FromAudio, LogDebug, "Allocated buffers");
-        // dsp = newmydsp();
-        // initmydsp(dsp, 48000);
-        // buildUserInterfacemydsp(dsp, &ui_glue);
-    }
-
-    // computemydsp(dsp, numFrames, NULL, outBuffers);
-    
+        
     // CLogger::Get ()->Write (FromAudio, LogDebug, "Triggering cores to run");
     // tell the cores to execute a loop
     core_1_run = true;
@@ -103,22 +109,31 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
 
     // CLogger::Get ()->Write (FromAudio, LogDebug, "All cores done");
 
-
     // sum the buffers
-    for(unsigned i=0; i<numFrames; i++)
+    for(unsigned i=0; i<NUM_FRAMES; i++)
     {
-        outBuffers[0][i] = buffers_1[0][i] + buffers_2[0][i] + buffers_3[0][i];
-        outBuffers[1][i] = buffers_1[1][i] + buffers_2[1][i] + buffers_3[1][i];
+        inBuffers[0][i] = buffers_1[0][i] + buffers_2[0][i] + buffers_3[0][i];
+        inBuffers[1][i] = buffers_1[1][i] + buffers_2[1][i] + buffers_3[1][i];
     }
 
-    for(int i=0; i<numFrames; i++){
-        s32 left = ftos24(outBuffers[0][i]);
-        s32 right = ftos24(outBuffers[1][i]);
-        // s32 left = tos24((outBuffers[0][i] * scale * dc) + dc);
-        // s32 right = tos24((outBuffers[1][i] * scale * dc) + dc);
-        pBuffer[i * 2] = left;
-        pBuffer[i * 2 + 1] = right;
+    if(chorus_on){
+        computemychorus(dsp0, NUM_FRAMES, inBuffers, outBuffers);
+    
+        for(int i=0; i<NUM_FRAMES; i++){
+            s32 left = ftos24(outBuffers[0][i]);
+            s32 right = ftos24(outBuffers[1][i]);
+            pBuffer[i * 2] = left;
+            pBuffer[i * 2 + 1] = right;
+        }
+    } else {
+        for(int i=0; i<NUM_FRAMES; i++){
+            s32 left = ftos24(inBuffers[0][i]);
+            s32 right = ftos24(inBuffers[1][i]);
+            pBuffer[i * 2] = left;
+            pBuffer[i * 2 + 1] = right;
+        }
     }
+
     // CLogger::Get ()->Write (FromAudio, LogDebug, "Wrote %d bytes, min %d, max %d", nChunkSize, min ,max);
 
     return nChunkSize;

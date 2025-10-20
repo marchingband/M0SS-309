@@ -29,6 +29,8 @@ unsigned int button_time[NUM_BUTTONS]       = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 u64 last_encoder_click = 0;
 
+bool chorus_on = false;
+
 const u8 mux_code[8][3] = {
     {0,0,0},
     {0,0,1},
@@ -214,6 +216,8 @@ void process_buttons(CTimer *timer){
                     if(i == BUTTON_NUM_ENCODER){
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder pushed");
                         *(Signals[0].gate[0]) = 1;
+                    } else if(i == BUTTON_NUM_CHORUS && alt_held()){
+                        chorus_on = !chorus_on;
                     } else {
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d pushed", i);
                         handle_button_press(i);

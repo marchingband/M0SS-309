@@ -27,32 +27,6 @@ struct Alt Alts[NUM_BUTTONS] = {0};
 struct Sel Sels[NUM_BUTTONS] = {0};
 struct AltSel AltSels[NUM_BUTTONS] = {0};
 struct Asb Asbs[NUM_BUTTONS] = {0};
-// struct Sigs Signals[NUM_DSP] = {
-//     {
-//         .pitch = {0,0,0},
-//         .gate = {0,0,0},
-//         .lfo = 0,
-//         .env = {0,0,0},
-//         // .pitch_bend = 0,
-//         // .vca = 0
-//     },
-//     {
-//         .pitch = {0,0,0},
-//         .gate = {0,0,0},
-//         .lfo = 0,
-//         .env = {0,0,0},
-//         // .pitch_bend = 0,
-//         // .vca = 0
-//     },
-//     {
-//         .pitch = {0,0,0},
-//         .gate = {0,0,0},
-//         .lfo = 0,
-//         .env = {0,0,0},
-//         // .pitch_bend = 0,
-//         // .vca = 0
-//     }
-// };
 struct Sigs Signals[NUM_DSP] = {0};
 
 void extract(const char *name, float *p, float init, float min, float max, float step){
@@ -184,7 +158,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
 };
 
 void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
-    
+
     const char *env_prefix = "env_";
     size_t env_prefix_len = strlen(env_prefix);
     if (strncmp(key, env_prefix, env_prefix_len) == 0) // its an env
