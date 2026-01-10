@@ -1,4 +1,5 @@
 import("stdfaust.lib");
+import("variable_osc.lib");
 
 lfo_dest_pitch = 0;
 lfo_dest_cutoff = 1;
@@ -85,7 +86,7 @@ with {
     noise   = no.noise;
     gate    = gateG(button("gate_%x"));
 
-    env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate);
+    env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
     env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
 
     os1_mod = lfo * lfo_os1 + env * env_os1 + noise * nse_os1 + os2 * os2_os1;
@@ -104,19 +105,30 @@ with {
     os1_pw_post = os1_pw + pw1_mod;
     os2_pw_post = os2_pw + pw2_mod;
 
-    os1_sqr = os.pulsetrain(os1_pitch, os1_pw_post);
-    os2_sqr = os.pulsetrain(os2_pitch, os2_pw_post);
+    // os1_sqr = os.pulsetrain(os1_pitch, os1_pw_post);
+    // os2_sqr = os.pulsetrain(os2_pitch, os2_pw_post);
 
-    os1_saw = os.sawNp(2, os1_pitch, os1_pw_post);
-    os2_saw = os.sawNp(2, os2_pitch, os2_pw_post);
+    // os1_saw = os.sawNp(2, os1_pitch, os1_pw_post);
+    // os2_saw = os.sawNp(2, os2_pitch, os2_pw_post);
 
-    os2_tri = os.triangle(os2_pitch);
+    // os2_tri = os.triangle(os2_pitch);
+
+    // os1 = os1_sqr, os1_saw : ba.selectn(2, os1_waveform);
+    // os2 = os2_sqr, os2_saw, os2_tri : ba.selectn(3, os2_waveform);
 
     vcf_cutoff = ctf + vcf_mod : ba.lin2LogGain : clamp(0,1);
-    vcf = ve.moogLadder(vcf_cutoff, res);
+    // vcf = ve.moogLadder(vcf_cutoff, res);
+    vcf = ve.oberheimLPF(vcf_cutoff, res);
 
-    os1 = os1_sqr, os1_saw : ba.selectn(2, os1_waveform);
-    os2 = os2_sqr, os2_saw, os2_tri : ba.selectn(3, os2_waveform);
+    pw_vosc_1 = os1_pw_post, 1 : ba.selectn(2, os1_waveform);
+    pw_vosc_2 = os2_pw_post, 1, 0.5 : ba.selectn(3, os2_waveform);
+    ws_vosc_1 = 1, 0 : ba.selectn(2, os1_waveform);
+    ws_vosc_2 = 1, 0, 0 : ba.selectn(3, os2_waveform);
+
+    // hard_sync_variable_slave(m_freq, s_freq, _pw, ws)
+    os1 = variable_osc.hard_sync_variable_slave(os2_pitch, os1_pitch, pw_vosc_1, ws_vosc_1);
+    // hard_sync_variable_master(s_freq, _pw, ws)
+    os2 = variable_osc.hard_sync_variable_master(os2_pitch, pw_vosc_2, ws_vosc_2);
 
     audio = os1 * os1_vol + os2 * os2_vol + noise * noise_vol;
     out = audio : vcf : _ * env_amp;

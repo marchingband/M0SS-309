@@ -14,6 +14,8 @@
 #include "midiXparser.h"
 #include "led.h"
 #include "cchorus.h"
+#include "dsp_glue.h"
+#include "dsp.h"
 
 #define NUM_FRAMES (CHUNK_SIZE / 2)
 
@@ -36,7 +38,6 @@ static CKY040 *encoder = nullptr;
 
 CPDI2S::CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder)
 :   CI2SSoundBaseDevice (pInterrupt, SAMPLE_RATE, CHUNK_SIZE, false)
-// :   CPWMSoundBaseDevice (pInterrupt, 44100, CHUNK_SIZE)
 {
     encoder = m_RotaryEncoder;
     if(outBuffers == nullptr){
@@ -55,7 +56,7 @@ CPDI2S::CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder)
     }
     dsp0 = newmychorus();
     initmychorus(dsp0, 48000);
-    // buildUserInterfacemydsp(dsp, &ui_glue);
+    buildUserInterfacemychorus(dsp0, &ui_glue);
 }
 
 CPDI2S::~CPDI2S(void)
@@ -116,7 +117,7 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
         inBuffers[1][i] = buffers_1[1][i] + buffers_2[1][i] + buffers_3[1][i];
     }
 
-    if(chorus_on){
+    // if(chorus_on){
         computemychorus(dsp0, NUM_FRAMES, inBuffers, outBuffers);
     
         for(int i=0; i<NUM_FRAMES; i++){
@@ -125,14 +126,14 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
             pBuffer[i * 2] = left;
             pBuffer[i * 2 + 1] = right;
         }
-    } else {
-        for(int i=0; i<NUM_FRAMES; i++){
-            s32 left = ftos24(inBuffers[0][i]);
-            s32 right = ftos24(inBuffers[1][i]);
-            pBuffer[i * 2] = left;
-            pBuffer[i * 2 + 1] = right;
-        }
-    }
+    // } else {
+    //     for(int i=0; i<NUM_FRAMES; i++){
+    //         s32 left = ftos24(inBuffers[0][i]);
+    //         s32 right = ftos24(inBuffers[1][i]);
+    //         pBuffer[i * 2] = left;
+    //         pBuffer[i * 2 + 1] = right;
+    //     }
+    // }
 
     // CLogger::Get ()->Write (FromAudio, LogDebug, "Wrote %d bytes, min %d, max %d", nChunkSize, min ,max);
 

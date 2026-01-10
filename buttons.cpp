@@ -216,8 +216,6 @@ void process_buttons(CTimer *timer){
                     if(i == BUTTON_NUM_ENCODER){
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder pushed");
                         *(Signals[0].gate[0]) = 1;
-                    } else if(i == BUTTON_NUM_CHORUS && alt_held()){
-                        chorus_on = !chorus_on;
                     } else {
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d pushed", i);
                         handle_button_press(i);
