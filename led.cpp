@@ -96,8 +96,8 @@ void render_leds(void){
 
     set_led(0, *(Sels[3].p[0]) ? Red : Off);        // SYNC
 
-    set_led(2, *(Sels[9].p[0]) == 0 ? Green : Off); // OSC 1 SAW
     set_led(1, *(Sels[9].p[0]) == 1 ? Green : Off); // OSC 1 SQR
+    set_led(2, *(Sels[9].p[0]) == 0 ? Green : Off); // OSC 1 SAW
 
     set_led(3, *(Sels[27].p[0]) == 0 ? Green : Off); // OSC 2 SAW
     set_led(4, *(Sels[27].p[0]) == 1 ? Green : Off); // OSC 2 SQR

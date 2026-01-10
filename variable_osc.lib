@@ -22,7 +22,7 @@ variable_osc = environment {
         out = saw_ + (tri - saw) * t_amt;
     };
 
-    hard_sync_variable_slave(m_freq, s_freq, _pw, ws) = (next, high, m_phase, s_phase, prev_pw, out) : !,!,!,!,!,_ : _*2-1
+    hard_sync_variable_slave(m_freq, s_freq, _pw, ws, sync) = (next, high, m_phase, s_phase, prev_pw, out) : !,!,!,!,!,_ : _*2-1
     letrec{
         'prev_pw = pw;
         'out = 
@@ -51,7 +51,7 @@ variable_osc = environment {
             )
             with {
                 m_phase_ = m_phase + m_step;
-                reset = m_phase_ >= 1.0;
+                reset = (m_phase_ >= 1.0) + sync == 2;
                 m_phase__ = fmod(m_phase_, 1.0);
                 reset_time = m_phase__ / m_step;
                 slave_phase_at_reset = s_phase + (1.0 - reset_time) * s_step;
@@ -86,7 +86,7 @@ variable_osc = environment {
             )
             with {
                 m_phase_ = m_phase + m_step;
-                reset = m_phase_ >= 1.0;
+                reset = (m_phase_ >= 1.0) + sync == 2;
                 m_phase__ = fmod(m_phase_, 1.0);
                 reset_time = m_phase__ / m_step;
                 slave_phase_at_reset = s_phase + (1.0 - reset_time) * s_step;
@@ -104,7 +104,7 @@ variable_osc = environment {
             )
             with{
                 m_phase_ = m_phase + m_step;
-                reset = m_phase_ >= 1.0;
+                reset = (m_phase_ >= 1.0) + sync == 2;
                 m_phase__ = fmod(m_phase_, 1.0);
                 reset_time = m_phase__ / m_step;
             };
@@ -117,7 +117,7 @@ variable_osc = environment {
             )
             with {
                 m_phase_ = m_phase + m_step;
-                reset = m_phase_ >= 1.0;
+                reset = (m_phase_ >= 1.0) + sync == 2;
                 s_phase_ = s_phase + s_step;
                 s_phase__ = fmod(s_phase_, 1.0);
             };
