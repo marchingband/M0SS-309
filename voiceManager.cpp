@@ -4,12 +4,8 @@
 #include <circle/logger.h>
 #include <circle/util.h>
 
-// #include "dsp_glue.h"
 #include "dsp.h"
 #include "voiceManager.h"
-// #include "M0SS-309.h"
-// #include "audio.h"
-// #include "strings.h"
 
 static const char FromVoiceManager[] = "voice manager";
 

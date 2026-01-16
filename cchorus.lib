@@ -17,32 +17,33 @@ cchorus = environment {
 
     tri(ph) = abs(ma.frac(ph - .25) * 4.0 - 2.0) - 1.0;
 
-    // CH_I_DEL_MS = 3.5;
-    // CH_I_DEL_MOD = 0.35;
-    // CH_I_LFO_FREQ_L = 0.8;
-    // CH_I_LFO_FREQ_R = 1.05;
-    // CH_I_LPF_FREQ = 10000;
+    CH_I_DEL_MS = 3.5;
+    CH_I_DEL_MOD = 0.35;
+    CH_I_LFO_FREQ_L = 0.8;
+    CH_I_LFO_FREQ_R = 1.05;
+    CH_I_LPF_FREQ = 10000;
 
-    CH_I_DEL_MS = 3.2;
-    CH_I_DEL_MOD = 0.3;
-    CH_I_LFO_FREQ_L = 0.7;
-    CH_I_LFO_FREQ_R = 0.43;
-    CH_I_LPF_FREQ = 27000;
+    // CH_I_DEL_MS = 3.2;
+    // CH_I_DEL_MOD = 0.3;
+    // CH_I_LFO_FREQ_L = 0.7;
+    // CH_I_LFO_FREQ_R = 0.43;
+    // CH_I_LPF_FREQ = 27000;
 
     CH_I_WET_AMT = -6;
-    CH_I_DRY_AMT = -7.5;
+    // CH_I_DRY_AMT = -7.5;
+    CH_I_DRY_AMT = -6;
 
-    // CH_II_DEL_MS = 6.0;
-    // CH_II_DEL_MOD = 0.45;
-    // CH_II_LFO_FREQ_L = 1.2;
-    // CH_II_LFO_FREQ_R = 1.05;
-    // CH_II_LPF_FREQ = 6500;
-
-    CH_II_DEL_MS = 4.0;
-    CH_II_DEL_MOD = 0.38;
+    CH_II_DEL_MS = 6.0;
+    CH_II_DEL_MOD = 0.45;
     CH_II_LFO_FREQ_L = 1.2;
     CH_II_LFO_FREQ_R = 1.05;
     CH_II_LPF_FREQ = 6500;
+
+    // CH_II_DEL_MS = 4.0;
+    // CH_II_DEL_MOD = 0.38;
+    // CH_II_LFO_FREQ_L = 1.2;
+    // CH_II_LFO_FREQ_R = 1.05;
+    // CH_II_LPF_FREQ = 6500;
 
     CH_II_WET_AMT = -6;
     CH_II_DRY_AMT = -6;
@@ -86,7 +87,9 @@ cchorus = environment {
         chII_r = chII_chorus_r(r_in);
         chI_II_l = chII_chorus_l(chI_chorus_l(l_in));
         chI_II_r = chII_chorus_r(chI_chorus_r(r_in));
-        l_out = dry_l, chI_l, chII_l, chI_II_l : ba.selectn(4, mode);
-        r_out = dry_r, chI_r, chII_r, chI_II_r : ba.selectn(4, mode);
+        // l_out = dry_l, chI_l, chII_l, chI_II_l : ba.selectn(4, mode);
+        // r_out = dry_r, chI_r, chII_r, chI_II_r : ba.selectn(4, mode);
+        l_out = dry_l * (mode == 0) + chI_l * (mode == 1) + chII_l * (mode == 2) + chI_II_l * (mode == 3);
+        r_out = dry_r * (mode == 0) + chI_r * (mode == 1) + chII_r * (mode == 2) + chI_II_r * (mode == 3);
     };
 };
