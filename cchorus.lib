@@ -1,0 +1,92 @@
+import("stdfaust.lib");
+
+cchorus = environment {
+
+    PI = ma.PI;
+    TWOPI = 2.0 * ma.PI;
+    MAX_DELAY_MS = 30.0;
+
+    // Modulation LFOs
+    // Oscillator with run-time controllable phase
+    // by Dr Dario Sanfilippo
+
+    phasor(freq, phase) = ma.frac((loop ~ _) + phase / TWOPI)
+    with {
+        loop(y) = ma.frac(freq / ma.SR + y);
+    };
+
+    tri(ph) = abs(ma.frac(ph - .25) * 4.0 - 2.0) - 1.0;
+
+    // CH_I_DEL_MS = 3.5;
+    // CH_I_DEL_MOD = 0.35;
+    // CH_I_LFO_FREQ_L = 0.8;
+    // CH_I_LFO_FREQ_R = 1.05;
+    // CH_I_LPF_FREQ = 10000;
+
+    CH_I_DEL_MS = 3.2;
+    CH_I_DEL_MOD = 0.3;
+    CH_I_LFO_FREQ_L = 0.7;
+    CH_I_LFO_FREQ_R = 0.43;
+    CH_I_LPF_FREQ = 27000;
+
+    CH_I_WET_AMT = -6;
+    CH_I_DRY_AMT = -7.5;
+
+    // CH_II_DEL_MS = 6.0;
+    // CH_II_DEL_MOD = 0.45;
+    // CH_II_LFO_FREQ_L = 1.2;
+    // CH_II_LFO_FREQ_R = 1.05;
+    // CH_II_LPF_FREQ = 6500;
+
+    CH_II_DEL_MS = 4.0;
+    CH_II_DEL_MOD = 0.38;
+    CH_II_LFO_FREQ_L = 1.2;
+    CH_II_LFO_FREQ_R = 1.05;
+    CH_II_LPF_FREQ = 6500;
+
+    CH_II_WET_AMT = -6;
+    CH_II_DRY_AMT = -6;
+
+    chI_lfo_l = sin(phasor(CH_I_LFO_FREQ_L, 0) * TWOPI);
+    chI_lfo_r = sin(phasor(CH_I_LFO_FREQ_R, 90) * TWOPI);
+    chII_lfo_l = sin(phasor(CH_II_LFO_FREQ_L, 0) * TWOPI);
+    chII_lfo_r = sin(phasor(CH_II_LFO_FREQ_R, 90) * TWOPI);
+
+    // L/R delay lines
+    chI_delay_l  = CH_I_DEL_MS  + CH_I_DEL_MS   * CH_I_DEL_MOD  * chI_lfo_l;
+    chI_delay_r  = CH_I_DEL_MS  + CH_I_DEL_MS   * CH_I_DEL_MOD  * chI_lfo_r;
+    chII_delay_l = CH_II_DEL_MS + CH_II_DEL_MS  * CH_II_DEL_MOD * chII_lfo_l;
+    chII_delay_r = CH_II_DEL_MS + CH_II_DEL_MS  * CH_II_DEL_MOD * chII_lfo_r;
+
+    // Delay filters
+    chI_lpf  = fi.lowpass(2, CH_I_LPF_FREQ);
+    chII_lpf = fi.lowpass(2, CH_II_LPF_FREQ);
+
+    // Chorus
+    chorus_mono(curdel, postfilter, dry, wet) =  _ <: _ * dry + wet_signal * wet
+    with {
+        dmax = ma.SR * 0.001 * MAX_DELAY_MS * 2;  // Mod Amount = 1 => double max delay time
+        wet_signal = de.fdelay(dmax, curdel * 0.001 * ma.SR) : postfilter;
+    };
+
+    // L/R FX chains
+
+    chI_chorus_l  = chorus_mono(chI_delay_l,  chI_lpf,  ba.db2linear(CH_I_DRY_AMT),  ba.db2linear(CH_I_WET_AMT));
+    chI_chorus_r  = chorus_mono(chI_delay_r,  chI_lpf,  ba.db2linear(CH_I_DRY_AMT),  ba.db2linear(CH_I_WET_AMT));
+    chII_chorus_l = chorus_mono(chII_delay_l, chII_lpf, ba.db2linear(CH_II_DRY_AMT), ba.db2linear(CH_II_WET_AMT));
+    chII_chorus_r = chorus_mono(chII_delay_r, chII_lpf, ba.db2linear(CH_II_DRY_AMT), ba.db2linear(CH_II_WET_AMT));
+
+    cchorus(mode, l_in, r_in) = l_out, r_out
+    with {
+        dry_l = l_in;
+        dry_r = r_in;
+        chI_l = chI_chorus_l(l_in);
+        chI_r = chI_chorus_r(r_in);
+        chII_l = chII_chorus_l(l_in);
+        chII_r = chII_chorus_r(r_in);
+        chI_II_l = chII_chorus_l(chI_chorus_l(l_in));
+        chI_II_r = chII_chorus_r(chI_chorus_r(r_in));
+        l_out = dry_l, chI_l, chII_l, chI_II_l : ba.selectn(4, mode);
+        r_out = dry_r, chI_r, chII_r, chI_II_r : ba.selectn(4, mode);
+    };
+};

@@ -13,9 +13,8 @@
 #include "dsp.h"
 #include "midiXparser.h"
 #include "led.h"
-#include "cchorus.h"
+#include "masterFX.h"
 #include "dsp_glue.h"
-#include "dsp.h"
 
 #define NUM_FRAMES (CHUNK_SIZE / 2)
 
@@ -28,9 +27,7 @@ extern float **buffers_1;
 extern float **buffers_2;
 extern float **buffers_3;
 
-extern bool chorus_on;
-
-mychorus *dsp0 = NULL;
+MasterFX *dsp0 = NULL;
 
 float **inBuffers = nullptr;
 float **outBuffers = nullptr;
@@ -54,9 +51,9 @@ CPDI2S::CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder)
         }
         CLogger::Get ()->Write (FromAudio, LogDebug, "Allocated inBuffers");
     }
-    dsp0 = newmychorus();
-    initmychorus(dsp0, 48000);
-    buildUserInterfacemychorus(dsp0, &ui_glue);
+    dsp0 = newMasterFX();
+    initMasterFX(dsp0, 48000);
+    buildUserInterfaceMasterFX(dsp0, &ui_glue);
 }
 
 CPDI2S::~CPDI2S(void)
@@ -117,23 +114,15 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
         inBuffers[1][i] = buffers_1[1][i] + buffers_2[1][i] + buffers_3[1][i];
     }
 
-    // if(chorus_on){
-        computemychorus(dsp0, NUM_FRAMES, inBuffers, outBuffers);
-    
-        for(int i=0; i<NUM_FRAMES; i++){
-            s32 left = ftos24(outBuffers[0][i]);
-            s32 right = ftos24(outBuffers[1][i]);
-            pBuffer[i * 2] = left;
-            pBuffer[i * 2 + 1] = right;
-        }
-    // } else {
-    //     for(int i=0; i<NUM_FRAMES; i++){
-    //         s32 left = ftos24(inBuffers[0][i]);
-    //         s32 right = ftos24(inBuffers[1][i]);
-    //         pBuffer[i * 2] = left;
-    //         pBuffer[i * 2 + 1] = right;
-    //     }
-    // }
+
+    computeMasterFX(dsp0, NUM_FRAMES, inBuffers, outBuffers);
+
+    for(int i=0; i<NUM_FRAMES; i++){
+        s32 left = ftos24(outBuffers[0][i]);
+        s32 right = ftos24(outBuffers[1][i]);
+        pBuffer[i * 2] = left;
+        pBuffer[i * 2 + 1] = right;
+    }
 
     // CLogger::Get ()->Write (FromAudio, LogDebug, "Wrote %d bytes, min %d, max %d", nChunkSize, min ,max);
 

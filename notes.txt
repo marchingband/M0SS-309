@@ -1,0 +1,6 @@
+
+compile:
+
+faust -lang c -cn MasterFX -o masterFX.h masterFX.dsp
+faust -lang c -o M0SS-309.h M0SS-309.dsp
+make

@@ -1,0 +1,10 @@
+import("stdfaust.lib");
+
+delay = environment {
+    delay(delay_time, delay_fb, l_in, r_in) = l_out, r_out
+    with {
+        delay_intrp  = 100 * ma.SR/1000.0;
+        l_out = l_in <: (+ : de.sdelay(int(2^13), delay_intrp, delay_time)) ~ *(delay_fb);
+        r_out = r_in <: (+ : de.sdelay(int(2^13), delay_intrp, delay_time)) ~ *(delay_fb);
+    };
+};

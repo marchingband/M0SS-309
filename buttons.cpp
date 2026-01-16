@@ -29,8 +29,6 @@ unsigned int button_time[NUM_BUTTONS]       = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 u64 last_encoder_click = 0;
 
-bool chorus_on = false;
-
 const u8 mux_code[8][3] = {
     {0,0,0},
     {0,0,1},
