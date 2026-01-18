@@ -1,10 +1,6 @@
 import("stdfaust.lib");
 import("variable_osc.lib");
 
-lfo_dest_pitch = 0;
-lfo_dest_cutoff = 1;
-lfo_dest_pw = 2;
-
 clamp(low, high, x) = min(max( low, x), high);
 
 envG(x) = hgroup("[0]env_amp",x);
@@ -22,19 +18,19 @@ matrixGos2(x) = hgroup("[8]os2 matrix", x);
 
 // env_amp
 a = envG(hslider("[0][mod:20][midi:1]a", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
-d = envG(hslider("[1][mod:2][midi:2]d", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
-s = envG(hslider("[2][mod:26][midi:3]s", 1, 0, 1, 0.0001));
+d = envG(hslider("[1][mod:2][midi:2]d",  0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+s = envG(hslider("[2][mod:26][midi:3]s", 1,     0,     1,  0.0001));
 r = envG(hslider("[3][mod:22][midi:4]r", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
 
 // env
-a_f     = filEnvG(hslider("[0][mod:5][midi:5]a", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
-d_f     = filEnvG(hslider("[1][mod:11][midi:6]d", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
-s_f     = filEnvG(hslider("[2][mod:14][midi:7]s", 1, 0, 1, 0.0001));
-r_f     = filEnvG(hslider("[3][mod:8][midi:8]r", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+a_f = filEnvG(hslider("[0][mod:5][midi:5]a",  0.001, 0.001, 1,       0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+d_f = filEnvG(hslider("[1][mod:11][midi:6]d", 0.001, 0.001, 1,       0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+s_f = filEnvG(hslider("[2][mod:14][midi:7]s", 1,     0,     1,       0.0001));
+r_f = filEnvG(hslider("[3][mod:8][midi:8]r",  0.001, 0.001, 1,       0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
 
 // filter
-ctf     = filG(hslider("ctf[mod:18][midi:9]", 0.8, 0, 1, 0.001)) : si.smoo;
-res     = filG(hslider("res[mod:6][midi:10]", 10,0.707, 25, 0.001)) : si.smoo;
+ctf     = filG(hslider("ctf[mod:18][midi:9]", 0.8, 0,     1,  0.001)) : si.smoo;
+res     = filG(hslider("res[mod:6][midi:10]", 10,  0.707, 25, 0.001)) : si.smoo;
 
 // OSC
 os1_waveform = osc1G(hslider("waveform[sel:9][midi:11]", 0, 0, 1, 0));
@@ -50,9 +46,9 @@ range = osc2G(hslider("hi-lo[sel:21][midi:18]", 0, 0, 1, 1));
 key_track = osc2G(hslider("kt[alt-sel:21][midi:19]", 1, 0, 1, 1));
 
 //mixer
-os1_vol  = mixerG(hslider("osc1[mod:19][midi:20]",      1,  0, 1,   0.001)) : si.smoo;
-os2_vol  = mixerG(hslider("osc2[mod:1][midi:21]",       0,  0, 1,   0.001)) : si.smoo;
-noise_vol  = mixerG(hslider("noise[alt:1][midi:22]",    0,  0, 1,   0.001)) : si.smoo;
+os1_vol  = mixerG(hslider("osc1[mod:19][midi:20]",      1, 0, 1, 0.001)) : si.smoo;
+os2_vol  = mixerG(hslider("osc2[mod:1][midi:21]",       0, 0, 1, 0.001)) : si.smoo;
+noise_vol  = mixerG(hslider("noise[alt:1][midi:22]",    0, 0, 1, 0.001)) : si.smoo;
 
 //lfo
 lfo_waveform = lfoG(hslider("waveform[sel:23][midi:23]", 2, 0, 2, 1));
@@ -95,7 +91,6 @@ OSC_PCH_RC = 4800;
 OSC_CTF_RC = 9600;
 PW_RC = 1;
 
-
 voice(x) = out
 with {
     noise   = no.noise;
@@ -116,13 +111,10 @@ with {
     os1_pitch_ratio = ba.cent2ratio(tune + dtn);
     os1_pitch_tracked =  freq * os1_pitch_ratio;
     os1_pitch = os1_pitch_ratio * 20, os1_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os1_mod));
-    // os1_pitch = os1_pitch_ratio * 20, os1_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os1_mod * 12800)); // TODO: 8 octaves
 
     os1_pw_post = os1_pw + pw1_mod;
     os2_pw_post = os2_pw + pw2_mod;
 
-    // vcf_cutoff = ctf + vcf_mod : ba.lin2LogGain : clamp(0,1);
-    // vcf_cutoff = ctf + vcf_mod : clamp(0,1);
     vcf_cutoff = ctf * 2^(vcf_mod / 1200) : clamp(0,1);
     // vcf = ve.moogLadder(vcf_cutoff, res);
     vcf = ve.oberheimLPF(vcf_cutoff, res);
@@ -135,9 +127,8 @@ with {
     os1 = variable_osc.hard_sync_variable_slave(os2_pitch, os1_pitch, pw_vosc_1, ws_vosc_1, sync);
     os2 = variable_osc.hard_sync_variable_master(os2_pitch, pw_vosc_2, ws_vosc_2);
 
-    audio = os1 * os1_vol + os2 * os2_vol + noise * noise_vol;
+    audio = os1 * os1_vol, os2 * os2_vol, noise * noise_vol :> *(0.5);
     out = audio : vcf : *(env_amp);
 };
 
-// process = par(x, 3, voice(x)) :> *(0.2) <:_,_;
 process = par(x, 3, voice(x)) :> *(0.12) <:_,_;
