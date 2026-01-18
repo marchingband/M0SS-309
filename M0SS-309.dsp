@@ -127,16 +127,17 @@ with {
     // vcf = ve.moogLadder(vcf_cutoff, res);
     vcf = ve.oberheimLPF(vcf_cutoff, res);
 
-    pw_vosc_1 = os1_pw_post, 1 : ba.selectn(2, os1_waveform);
-    pw_vosc_2 = os2_pw_post, 1, 0.5 : ba.selectn(3, os2_waveform);
-    ws_vosc_1 = 1, 0 : ba.selectn(2, os1_waveform);
-    ws_vosc_2 = 1, 0, 0 : ba.selectn(3, os2_waveform);
+    pw_vosc_1 = 1, os1_pw_post : ba.selectn(2, os1_waveform);
+    pw_vosc_2 = 1, os2_pw_post, 0.5 : ba.selectn(3, os2_waveform);
+    ws_vosc_1 = 0, 1 : ba.selectn(2, os1_waveform);
+    ws_vosc_2 = 0, 1, 0 : ba.selectn(3, os2_waveform);
 
     os1 = variable_osc.hard_sync_variable_slave(os2_pitch, os1_pitch, pw_vosc_1, ws_vosc_1, sync);
     os2 = variable_osc.hard_sync_variable_master(os2_pitch, pw_vosc_2, ws_vosc_2);
 
     audio = os1 * os1_vol + os2 * os2_vol + noise * noise_vol;
-    out = audio : vcf : _ * env_amp;
+    out = audio : vcf : *(env_amp);
 };
 
-process = par(x, 3, voice(x)) :> *(0.2) <:_,_;
+// process = par(x, 3, voice(x)) :> *(0.2) <:_,_;
+process = par(x, 3, voice(x)) :> *(0.12) <:_,_;
