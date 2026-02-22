@@ -2,6 +2,7 @@ import("stdfaust.lib");
 import("variable_osc.lib");
 
 clamp(low, high, x) = min(max( low, x), high);
+log3(n) = n * n * n;
 
 envG(x) = hgroup("[0]env_amp",x);
 filEnvG(x) = hgroup("[1]env",x); 
@@ -17,20 +18,20 @@ matrixGnse(x) = hgroup("[7]nse matrix", x);
 matrixGos2(x) = hgroup("[8]os2 matrix", x);
 
 // env_amp
-a = envG(hslider("[0][mod:20][midi:1]a", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
-d = envG(hslider("[1][mod:2][midi:2]d",  0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+a = envG(hslider("[0][mod:20][midi:1]a", 0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+d = envG(hslider("[1][mod:2][midi:2]d",  0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
 s = envG(hslider("[2][mod:26][midi:3]s", 1,     0,     1,  0.0001));
-r = envG(hslider("[3][mod:22][midi:4]r", 0.001, 0.001, 1,  0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+r = envG(hslider("[3][mod:22][midi:4]r", 0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
 
 // env
-a_f = filEnvG(hslider("[0][mod:5][midi:5]a",  0.001, 0.001, 1,       0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
-d_f = filEnvG(hslider("[1][mod:11][midi:6]d", 0.001, 0.001, 1,       0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+a_f = filEnvG(hslider("[0][mod:5][midi:5]a",  0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+d_f = filEnvG(hslider("[1][mod:11][midi:6]d", 0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
 s_f = filEnvG(hslider("[2][mod:14][midi:7]s", 1,     0,     1,       0.0001));
-r_f = filEnvG(hslider("[3][mod:8][midi:8]r",  0.001, 0.001, 1,       0.0001) : ba.lin2LogGain : it.remap(0.0, 1.0, 0.001, 20.0));
+r_f = filEnvG(hslider("[3][mod:8][midi:8]r",  0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
 
 // filter
-ctf     = filG(hslider("ctf[mod:18][midi:9]", 0.8, 0,     1,  0.001)) : si.smoo;
-res     = filG(hslider("res[mod:6][midi:10]", 10,  0.707, 25, 0.001)) : si.smoo;
+ctf     = filG(hslider("ctf[mod:18][midi:9]", 1,     0,     1,   0.001)) : si.smoo;
+res     = filG(hslider("res[mod:6][midi:10]", 0.707, 0.707, 9.9, 0.001)) : si.smoo;
 
 // OSC
 os1_waveform = osc1G(hslider("waveform[sel:9][midi:11]", 0, 0, 1, 0));
@@ -117,7 +118,9 @@ with {
 
     vcf_cutoff = ctf * 2^(vcf_mod / 1200) : clamp(0,1);
     // vcf = ve.moogLadder(vcf_cutoff, res);
-    vcf = ve.oberheimLPF(vcf_cutoff, res);
+    // vcf = ve.oberheimLPF(vcf_cutoff, res);
+    vcf = ve.korg35LPF(vcf_cutoff, res);
+    
 
     pw_vosc_1 = 1, os1_pw_post : ba.selectn(2, os1_waveform);
     pw_vosc_2 = 1, os2_pw_post, 0.5 : ba.selectn(3, os2_waveform);

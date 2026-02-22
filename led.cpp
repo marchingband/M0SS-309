@@ -1,13 +1,16 @@
-#include <WS28XX/ws28xxstripe.h>
+// #include <WS28XX/ws28xxstripe.h>
+#include <WS28XX/ws2812oversmi.h>
 #include <circle/logger.h>
 #include <circle/util.h>
 #include <circle/timer.h>
+#include <assert.h>
 #include "strings.h"
 
 #include "led.h"
 #include "dsp.h"
 
-CWS28XXStripe led_strip(SK6812, NUM_LED, 4000000, 0);
+// CWS28XXStripe led_strip(SK6812, NUM_LED, 4000000, 0);
+static CWS2812OverSMI *led_strip = nullptr;
 
 static struct Pixel Red = {
     .red = 1, 
@@ -75,7 +78,9 @@ void set_matrix(int row, int column, struct Pixel pixel){
 }
 
 static void set_led(unsigned int idx, struct Pixel pixel){
-    led_strip.SetLED(idx, pixel.red, pixel.green, pixel.blue);
+    // led_strip.SetLED(idx, pixel.red, pixel.green, pixel.blue);
+    assert(led_strip != nullptr);
+    led_strip->SetLED(2, idx, pixel.red, pixel.green, pixel.blue);
 }
 
 static void tint_led_yellow(struct Pixel *pixel){
@@ -186,13 +191,18 @@ void render_leds(void){
     set_led(36, led_bar[1] == 0 ? Off : led_bar[1] == 1 ? On : pixel_fade(led_bar[1])); // 1
     set_led(37, led_bar[0] == 0 ? Off : led_bar[0] == 1 ? On : pixel_fade(led_bar[0])); // 0
 
-    led_strip.Update();
+    assert(led_strip != nullptr);
+    led_strip->Update();
 }
 
 void led_init(void){
-    led_strip.Initialize();
+    if (led_strip == nullptr) {
+        led_strip = new CWS2812OverSMI(1 << 2, NUM_LED);
+        assert(led_strip != nullptr);
+    }
     for(int i=0; i<NUM_LED; i++){
+        // set_led(i, On);
         set_led(i, Off);
     }
-    led_strip.Update();
+    led_strip->Update();
 }

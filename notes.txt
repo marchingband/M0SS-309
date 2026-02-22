@@ -4,3 +4,14 @@ compile:
 faust -lang c -cn MasterFX -o masterFX.h masterFX.dsp
 faust -lang c -o M0SS-309.h M0SS-309.dsp
 make
+
+
+TODO:
+
+feature: lfo per voice
+feature: more reverb controls
+bug: launchkey gets no note offs
+bug: chorus pops when toggled
+bug: OSC-1 should be sync master, FM destination, and have 3 waveforms
+    OSC-2 should be LFO, detunable, sync slave
+
