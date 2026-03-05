@@ -89,10 +89,11 @@ static void tint_led_yellow(struct Pixel *pixel){
 }
 
 static struct Pixel pixel_fade(float val){
+    float clamped = val < 0.0 ? 0.0 : val > 1.0 ? 1.0 : val;
     struct Pixel pixel = {
-        .red = (u8)(10.0 * val),
-        .green = (u8)(150.0 * val),
-        .blue = (u8)(50.0 * val)
+        .red = (u8)(10.0 * clamped),
+        .green = (u8)(150.0 * clamped),
+        .blue = (u8)(50.0 * clamped)
     };
     return pixel;
 }

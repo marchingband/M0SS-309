@@ -8,10 +8,22 @@ make
 
 TODO:
 
-feature: lfo per voice
-feature: more reverb controls
-bug: launchkey gets no note offs
-bug: chorus pops when toggled
-bug: OSC-1 should be sync master, FM destination, and have 3 waveforms
+BUGS:
+- launchkey gets no note offs
+- chorus pops when toggled
+- OSC-1 should be sync master, FM destination, and have 3 waveforms
     OSC-2 should be LFO, detunable, sync slave
+
+FEATURES:
+- optional lfo per voice
+- more reverb controls
+- mono mode (VA osc drift, portamento)
+- tune for osc 1
+- optional quantize osc's to semitones.
+- master volume / tune
+- bus in mod matrix (for mod wheel ganged fx)
+- multiple keytracking modes (1/2 and full)(or continuosly variable)
+- global transpose
+- n banks of presets
+- invert secondary ADSR
 
