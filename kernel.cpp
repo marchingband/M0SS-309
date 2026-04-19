@@ -70,6 +70,8 @@ boolean CKernel::Initialize (void)
 		bOK = m_Logger.Initialize (&m_Serial);
 	}
 
+	led_init();
+
 	if (bOK)
 	{
 		bOK = m_Interrupt.Initialize ();
@@ -102,7 +104,7 @@ boolean CKernel::Initialize (void)
 		CI2SSoundDevice = new CPDI2S(&m_Interrupt, &m_RotaryEncoder);
 	}
 
-	led_init();
+	// led_init();
 
 	// if (bOK)
 	// {
@@ -156,6 +158,7 @@ TShutdownMode CKernel::Run (void)
 	if(!CI2SSoundDevice->Start()){
 		m_Logger.Write (FromKernel, LogPanic, "Cannot start sound");
 	}
+	stopSplash();
 
 	while(1){
 		// main loop

@@ -44,6 +44,42 @@ static float led_bar_min = 0;
 static float led_bar_max = 0;
 
 static struct Pixel matrix[4][5] = {0};
+static void set_led(unsigned int idx, struct Pixel pixel);
+
+#define SPLASH_INTERVAL_US 100000ULL
+static u64 splash_last_update_us = 0;
+static u32 splash_rng = 1;
+static boolean splash_running = FALSE;
+
+static u32 splash_rand(void)
+{
+    splash_rng = splash_rng * 1664525U + 1013904223U;
+    return splash_rng;
+}
+
+static void splash_tick(void)
+{
+    if (!splash_running || led_strip == nullptr)
+    {
+        return;
+    }
+
+    u64 now_us = CTimer::GetClockTicks64();
+    if (now_us - splash_last_update_us < SPLASH_INTERVAL_US)
+    {
+        return;
+    }
+    splash_last_update_us = now_us;
+
+    for (unsigned i = 0; i < NUM_LED; i++)
+    {
+        set_led(i, Off);
+    }
+
+    unsigned led = (unsigned) (splash_rand() % NUM_LED);
+    set_led(led, On);
+    led_strip->Update();
+}
 
 void set_led_bar(float *val, float min, float max){
     led_bar_val_p = val;
@@ -196,14 +232,27 @@ void render_leds(void){
     led_strip->Update();
 }
 
+void start_splash(){
+    CTimer::Get()->RegisterPeriodicHandler(splash_tick);
+    splash_running = TRUE;
+    splash_last_update_us = CTimer::GetClockTicks64();
+    splash_rng = splash_last_update_us;
+}
+
 void led_init(void){
     if (led_strip == nullptr) {
         led_strip = new CWS2812OverSMI(1 << 2, NUM_LED);
         assert(led_strip != nullptr);
     }
-    for(int i=0; i<NUM_LED; i++){
-        // set_led(i, On);
+    for (unsigned i = 0; i < NUM_LED; i++)
+    {
         set_led(i, Off);
     }
     led_strip->Update();
+    start_splash();
+}
+
+void stopSplash(void)
+{
+    splash_running = FALSE;
 }

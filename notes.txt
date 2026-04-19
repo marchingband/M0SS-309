@@ -17,13 +17,54 @@ BUGS:
 FEATURES:
 - optional lfo per voice
 - more reverb controls
-- mono mode (VA osc drift, portamento)
-- tune for osc 1
-- optional quantize osc's to semitones.
-- master volume / tune
-- bus in mod matrix (for mod wheel ganged fx)
+- mono/unison mode (VA osc drift, portamento)
+- optional quantize osc's to semitones. // encoder pressed/not
+- master volume / transpose
+- bus in mod matrix (for mod wheel ganged fx) // should just be a button, to toggle polymod mode, where whole matrix is for the polymod
 - multiple keytracking modes (1/2 and full)(or continuosly variable)
-- global transpose
 - n banks of presets
-- invert secondary ADSR
+- invert secondary ADSR ?
 
+buttons:
+- MONO    
+- P-MOD   
+- LOAD    
+- SAVE    
+- LEARN
+-H CURVES
+-H P-BEND +
+-H P-BEND -
+-H ANALOG
+- M-CHAN
+- OUT
+- TRANSPOSE
+- GLIDE
+
+- CH-MODE
+- D-TM
+- D-FB
+- D-MIX
+- R-FB
+- R-TM
+- R-MX
+
+416:
+- scala support
+- sysex dump (UX?)
+- sysex load bank (UX?) - on receive, go into save bank mode, select bank, click, alt to cancel
+- master volume
+- fx (just reverb?)
+- add buttons / change ribbon cable
+
+buttons:
+reverb      2   L/R CURVE
+midi chan   1   BRK-P
+midi learn  1   WAV
+volume      1   FB
+mt scale    1   TUNE
+
+lights:
+1 LFO SYNC
+
+rack connector:
+- include audio and is2

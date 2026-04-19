@@ -130,8 +130,8 @@ with {
     os2_pw_post = os2_pw + pw2_mod;
 
     keytrack_ratio = freq / 440.0;
-    d = log10(keytrack_ratio) / 3.0;
-    ctf_tracked = ctf + d;
+    delta = log10(keytrack_ratio) / 3.0;
+    ctf_tracked = ctf + delta;
 
     // ctf_tracked_hz = ctf_hz * keytrack_ratio;
     // ctf_tracked = ctf_tracked_hz / ma.SR;

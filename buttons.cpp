@@ -254,7 +254,8 @@ void scan_buttons(CTimer *timer){
         mux_a1.Write(mux_code[i][1]);
         mux_a2.Write(mux_code[i][2]);
         
-        timer->usDelay(5); // let it settle
+        timer->usDelay(10); // let it settle
+        // timer->usDelay(5); // let it settle
         
         // read the pins
         button_state[i * 3 + 0] = mux_1.Read();

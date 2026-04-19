@@ -11,6 +11,7 @@ struct Pixel {
   
 
 void led_init(void);
+void stopSplash(void);
 void render_leds(void);
 void set_led_bar(float *val, float min, float max);
 
