@@ -8,6 +8,7 @@
 #include "M0SS-309.h"
 #include "audio.h"
 #include "buttons.h"
+#include "logging.h"
 
 static const char FromDSP[] = "DSP";
 
@@ -28,6 +29,79 @@ struct Sel Sels[NUM_BUTTONS] = {0};
 struct AltSel AltSels[NUM_BUTTONS] = {0};
 struct Asb Asbs[NUM_BUTTONS] = {0};
 struct Sigs Signals[NUM_DSP] = {0};
+
+// Optional DSP benchmark logging (disabled by default).
+#if APP_ENABLE_BENCH_LOGS
+struct DSPBenchStats {
+    boolean seen;
+    u32 min_pct_x100;
+    u32 max_pct_x100;
+    u32 min_us;
+    u32 max_us;
+};
+
+static struct DSPBenchStats s_DSPBench[NUM_DSP] = {0};
+
+static u32 calc_block_capacity_pct_x100(u32 elapsed_us)
+{
+    // Each DSP core renders CHUNK_SIZE/2 samples per audio callback.
+    // Capacity is the real-time budget for this block at SAMPLE_RATE.
+    const u64 frames = (u64) (CHUNK_SIZE / 2);
+    const u64 den = frames * 1000000ULL;
+    const u64 num = (u64) elapsed_us * (u64) SAMPLE_RATE * 10000ULL; // percent with 2 decimals
+    return (u32) ((num + den / 2ULL) / den); // rounded
+}
+
+static void benchmark_dsp_core(unsigned core_index, u32 elapsed_us)
+{
+    if (core_index >= NUM_DSP) {
+        return;
+    }
+
+    u32 pct_x100 = calc_block_capacity_pct_x100(elapsed_us);
+    struct DSPBenchStats *stats = &s_DSPBench[core_index];
+    boolean min_changed = FALSE;
+    boolean max_changed = FALSE;
+
+    if (!stats->seen) {
+        stats->seen = TRUE;
+        stats->min_pct_x100 = pct_x100;
+        stats->max_pct_x100 = pct_x100;
+        stats->min_us = elapsed_us;
+        stats->max_us = elapsed_us;
+        min_changed = TRUE;
+        max_changed = TRUE;
+    } else {
+        if (pct_x100 < stats->min_pct_x100) {
+            stats->min_pct_x100 = pct_x100;
+            stats->min_us = elapsed_us;
+            min_changed = TRUE;
+        }
+        if (pct_x100 > stats->max_pct_x100) {
+            stats->max_pct_x100 = pct_x100;
+            stats->max_us = elapsed_us;
+            max_changed = TRUE;
+        }
+    }
+
+    if (min_changed || max_changed) {
+        CLogger::Get ()->Write (
+            FromDSP,
+            LogNotice,
+            "core %u DSP load min %u.%02u%% (%u us) max %u.%02u%% (%u us)%s%s",
+            core_index + 1,
+            stats->min_pct_x100 / 100U,
+            stats->min_pct_x100 % 100U,
+            stats->min_us,
+            stats->max_pct_x100 / 100U,
+            stats->max_pct_x100 % 100U,
+            stats->max_us,
+            min_changed ? " [new min]" : "",
+            max_changed ? " [new max]" : ""
+        );
+    }
+}
+#endif
 
 void extract(const char *name, float *p, float init, float min, float max, float step){
     // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "extract %s", name);
@@ -309,15 +383,39 @@ UIGlue ui_glue = {
 };
 
 void compute_dsp_1(void){
+#if APP_ENABLE_BENCH_LOGS
+    u64 start_us = CTimer::GetClockTicks64();
     computemydsp(dsp1, CHUNK_SIZE / 2, NULL, buffers_1);
+    u64 elapsed_us_64 = CTimer::GetClockTicks64() - start_us;
+    u32 elapsed_us = elapsed_us_64 > 0xFFFFFFFFULL ? 0xFFFFFFFFU : (u32) elapsed_us_64;
+    benchmark_dsp_core(0, elapsed_us);
+#else
+    computemydsp(dsp1, CHUNK_SIZE / 2, NULL, buffers_1);
+#endif
 }
 
 void compute_dsp_2(void){
+#if APP_ENABLE_BENCH_LOGS
+    u64 start_us = CTimer::GetClockTicks64();
     computemydsp(dsp2, CHUNK_SIZE / 2, NULL, buffers_2);
+    u64 elapsed_us_64 = CTimer::GetClockTicks64() - start_us;
+    u32 elapsed_us = elapsed_us_64 > 0xFFFFFFFFULL ? 0xFFFFFFFFU : (u32) elapsed_us_64;
+    benchmark_dsp_core(1, elapsed_us);
+#else
+    computemydsp(dsp2, CHUNK_SIZE / 2, NULL, buffers_2);
+#endif
 }
 
 void compute_dsp_3(void){
+#if APP_ENABLE_BENCH_LOGS
+    u64 start_us = CTimer::GetClockTicks64();
     computemydsp(dsp3, CHUNK_SIZE / 2, NULL, buffers_3);
+    u64 elapsed_us_64 = CTimer::GetClockTicks64() - start_us;
+    u32 elapsed_us = elapsed_us_64 > 0xFFFFFFFFULL ? 0xFFFFFFFFU : (u32) elapsed_us_64;
+    benchmark_dsp_core(2, elapsed_us);
+#else
+    computemydsp(dsp3, CHUNK_SIZE / 2, NULL, buffers_3);
+#endif
 }
 
 void dsp_init(CTimer *timer){

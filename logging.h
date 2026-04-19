@@ -3,6 +3,10 @@
 
 #include <circle/logger.h>
 
+#ifndef APP_ENABLE_BENCH_LOGS
+#define APP_ENABLE_BENCH_LOGS 0
+#endif
+
 #ifdef APP_ENABLE_LOGGING
 #define APP_LOG(module, level, ...) CLogger::Get ()->Write ((module), (level), __VA_ARGS__)
 #else
