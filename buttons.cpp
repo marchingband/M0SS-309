@@ -49,6 +49,7 @@ struct Param param_selected = {
 
 bool poly_mod_active = false;
 int ui_mode = UI_MODE_PLAY;
+static bool alt_consumed = false;
 
 const int param_matrix[4][5] = {
     {26,27,28,29,30},
@@ -69,14 +70,6 @@ int matrix_column_selected = -1;
 
 bool alt_held(void){
     return button_state[BUTTON_NUM_ALT] == 0;
-}
-
-void set_ui_mode(int mode){
-    ui_mode = mode;
-}
-
-int get_ui_mode(void){
-    return ui_mode;
 }
 
 void set_param_selected(int button, bool is_cc){
@@ -229,7 +222,7 @@ void handle_button_press(int num){
     if(num == BUTTON_NUM_ALT) {
         if(ui_mode == UI_MODE_LEARN){
             midi_exit_learn_mode();
-            set_ui_mode(UI_MODE_PLAY);
+            ui_mode = UI_MODE_PLAY;
         }
         return;
     }
@@ -242,7 +235,7 @@ void handle_button_press(int num){
             if(alt_held()){
                 if(num == BUTTON_NUM_LEARN){
                     midi_enter_learn_mode();
-                    set_ui_mode(UI_MODE_LEARN);
+                    ui_mode = UI_MODE_LEARN;
                     return;
                 }
                 if(num == BUTTON_NUM_POLY_MOD){
@@ -306,10 +299,16 @@ void process_buttons(CTimer *timer){
                     button_pushes[i] = 1;
                     button_state[i] = 0;
                     button_time[i] = now;
+                    if(i == BUTTON_NUM_ALT){
+                        alt_consumed = false;
+                    } else if (alt_held()) {
+                        alt_consumed = true;
+                    }
+
                     if(i == BUTTON_NUM_ENCODER){
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder pushed");
                         *(Signals[0].gate[0]) = 1;
-                    } else {
+                    } else if(i != BUTTON_NUM_ALT) {
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d pushed", i);
                         handle_button_press(i);
                     }
@@ -331,6 +330,10 @@ void process_buttons(CTimer *timer){
                     if(i == BUTTON_NUM_ENCODER){
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder released");
                         *(Signals[0].gate[0]) = 0;
+                    } else if (i == BUTTON_NUM_ALT) {
+                        if (!alt_consumed) {
+                            handle_button_press(i);
+                        }
                     } else {
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d released", i);
                     }

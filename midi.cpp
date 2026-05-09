@@ -24,9 +24,9 @@ static uint8_t stack[STACK_SIZE];
 static int head = 0;  // oldest note
 static int tail = 0;  // next free slot
 static int stack_cnt = 0;
-static u8 cc_map[NUM_CC_MAP] = {0};
-static int mode_learn_current_cc = 0;
-static int learn_mode_state = LEARN_MODE_READY;
+u8 cc_map[NUM_CC_MAP] = {0};
+int mode_learn_current_cc = 0;
+int learn_mode_state = LEARN_MODE_READY;
 
 static void set_param_vals(float *(&vals)[NUM_DSP], float val)
 {
@@ -110,44 +110,35 @@ void midi_exit_learn_mode(void)
 
 void midi_select_learn_target(int button, bool alt)
 {
+    const int kPolyModCC = 62;
     int cc_num = -1;
 
-    switch (button) {
-    case BUTTON_NUM_MATRIX_ROW_0:
-    case BUTTON_NUM_MATRIX_ROW_1:
-    case BUTTON_NUM_MATRIX_ROW_2:
-    case BUTTON_NUM_MATRIX_ROW_3:
-    case BUTTON_NUM_MATRIX_COLUMN_0:
-    case BUTTON_NUM_MATRIX_COLUMN_1:
-    case BUTTON_NUM_MATRIX_COLUMN_2:
-    case BUTTON_NUM_MATRIX_COLUMN_3:
-    case BUTTON_NUM_MATRIX_COLUMN_4:
-        cc_num = get_matrix_cc_for_button(button);
-        break;
-    default:
-        cc_num = get_cc_for_button(button, alt);
-        break;
+    if (alt && button == BUTTON_NUM_POLY_MOD) {
+        // In learn mode ALT+23 should target the poly.mod control, not the P.MOD toggle.
+        cc_num = kPolyModCC;
+    } else {
+        switch (button) {
+        case BUTTON_NUM_MATRIX_ROW_0:
+        case BUTTON_NUM_MATRIX_ROW_1:
+        case BUTTON_NUM_MATRIX_ROW_2:
+        case BUTTON_NUM_MATRIX_ROW_3:
+        case BUTTON_NUM_MATRIX_COLUMN_0:
+        case BUTTON_NUM_MATRIX_COLUMN_1:
+        case BUTTON_NUM_MATRIX_COLUMN_2:
+        case BUTTON_NUM_MATRIX_COLUMN_3:
+        case BUTTON_NUM_MATRIX_COLUMN_4:
+            cc_num = get_matrix_cc_for_button(button);
+            break;
+        default:
+            cc_num = get_cc_for_button(button, alt);
+            break;
+        }
     }
 
     if (cc_num > 0 && cc_num < NUM_CC) {
         mode_learn_current_cc = cc_num;
         learn_mode_state = LEARN_MODE_SELECTED;
     }
-}
-
-int get_mode_learn_current_cc(void)
-{
-    return mode_learn_current_cc;
-}
-
-int get_learn_mode_state(void)
-{
-    return learn_mode_state;
-}
-
-u8 *get_cc_map(void)
-{
-    return &cc_map[0];
 }
 
 static void remove_note_from_stack(uint8_t note) {
@@ -266,7 +257,7 @@ void handle_note_off(u8 note){
 
 static void handle_channel_aftertouch(u8 value)
 {
-    if (get_ui_mode() == UI_MODE_LEARN) {
+    if (ui_mode == UI_MODE_LEARN) {
         if (mode_learn_current_cc > 0) {
             cc_map[CC_MAP_AFTERTOUCH_IDX] = (u8) mode_learn_current_cc;
             learn_mode_state = LEARN_MODE_LEARNED;
@@ -297,7 +288,7 @@ void handle_midi_byte(u8 byte)
                 uint8_t note = msg[1] & 0b01111111;
                 uint8_t velocity = msg[2] & 0b01111111;
                 CLogger::Get ()->Write (FromMidi, LogNotice, "note on %d", note);
-                if(get_ui_mode() == UI_MODE_LEARN){
+                if(ui_mode == UI_MODE_LEARN){
                     if(mode_learn_current_cc > 0){
                         cc_map[CC_MAP_VELOCITY_IDX] = (u8) mode_learn_current_cc;
                         learn_mode_state = LEARN_MODE_LEARNED;
@@ -320,7 +311,7 @@ void handle_midi_byte(u8 byte)
                 if (cc_num_in == 0) {
                     break;
                 }
-                if(get_ui_mode() == UI_MODE_LEARN){
+                if(ui_mode == UI_MODE_LEARN){
                     if(mode_learn_current_cc > 0){
                         cc_map[cc_num_in - 1] = (u8) mode_learn_current_cc;
                         learn_mode_state = LEARN_MODE_LEARNED;

@@ -30,6 +30,7 @@
 
 extern int matrix_row_selected;
 extern int matrix_column_selected;
+extern int ui_mode;
 
 struct Param {
     int button;
@@ -41,8 +42,6 @@ void scan_buttons(CTimer *timer);
 void process_buttons(CTimer *timer);
 void handle_encoder(bool up, u64 now);
 bool alt_held(void);
-void set_ui_mode(int mode);
-int get_ui_mode(void);
 int get_matrix_cc_for_button(int num);
 
 #endif

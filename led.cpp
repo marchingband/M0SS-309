@@ -154,11 +154,11 @@ static struct Pixel pixel_fade(float val){
 }
 
 void render_leds(void){
-    if (get_ui_mode() == UI_MODE_LEARN) {
+    if (ui_mode == UI_MODE_LEARN) {
         struct Pixel learn_pixel = LightPink;
-        if (get_learn_mode_state() == LEARN_MODE_SELECTED) {
+        if (learn_mode_state == LEARN_MODE_SELECTED) {
             learn_pixel = LightGreen;
-        } else if (get_learn_mode_state() == LEARN_MODE_LEARNED) {
+        } else if (learn_mode_state == LEARN_MODE_LEARNED) {
             learn_pixel = LightBlue;
         }
 
