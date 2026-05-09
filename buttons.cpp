@@ -7,6 +7,7 @@
 #include "led.h"
 #include "audio.h"
 #include "buttons.h"
+#include "midi.h"
 
 static const char FromButtons[] = "buttons";
 
@@ -47,6 +48,7 @@ struct Param param_selected = {
 };
 
 bool poly_mod_active = false;
+int ui_mode = UI_MODE_PLAY;
 
 const int param_matrix[4][5] = {
     {26,27,28,29,30},
@@ -65,8 +67,16 @@ const int pmod_param_matrix[4][5] = {
 int matrix_row_selected = 0;
 int matrix_column_selected = -1;
 
-bool alt_held(){
+bool alt_held(void){
     return button_state[BUTTON_NUM_ALT] == 0;
+}
+
+void set_ui_mode(int mode){
+    ui_mode = mode;
+}
+
+int get_ui_mode(void){
+    return ui_mode;
 }
 
 void set_param_selected(int button, bool is_cc){
@@ -171,44 +181,113 @@ void handle_matrix_press(int num){
     }
 }
 
+int get_matrix_cc_for_button(int num)
+{
+    switch(num){
+        case BUTTON_NUM_MATRIX_ROW_0:
+            matrix_row_selected = 0;
+            break;
+        case BUTTON_NUM_MATRIX_ROW_1:
+            matrix_row_selected = 1;
+            break;
+        case BUTTON_NUM_MATRIX_ROW_2:
+            matrix_row_selected = 2;
+            break;
+        case BUTTON_NUM_MATRIX_ROW_3:
+            matrix_row_selected = 3;
+            break;
+        case BUTTON_NUM_MATRIX_COLUMN_0:
+            matrix_column_selected = 0;
+            break;
+        case BUTTON_NUM_MATRIX_COLUMN_1:
+            matrix_column_selected = 1;
+            break;
+        case BUTTON_NUM_MATRIX_COLUMN_2:
+            matrix_column_selected = 2;
+            break;
+        case BUTTON_NUM_MATRIX_COLUMN_3:
+            matrix_column_selected = 3;
+            break;
+        case BUTTON_NUM_MATRIX_COLUMN_4:
+            matrix_column_selected = 4;
+            break;
+        default:
+            return -1;
+    }
+
+    if(matrix_column_selected == -1){
+        return -1;
+    }
+
+    return poly_mod_active ?
+        pmod_param_matrix[matrix_row_selected][matrix_column_selected] :
+        param_matrix[matrix_row_selected][matrix_column_selected];
+}
+
 void handle_button_press(int num){
-    if(num == BUTTON_NUM_ALT) return;
     CLogger::Get ()->Write (FromButtons, LogDebug, "handle_button_press %d", num);
-    struct Mod *mod = &Mods[num];
-    struct Alt *alt = &Alts[num];
-    struct Sel *sel = &Sels[num];
-    struct AltSel *alt_sel = &AltSels[num];
-    if(alt_held()){
-        if(num == BUTTON_NUM_POLY_MOD){
-            poly_mod_active = !poly_mod_active;
-            return;
+    if(num == BUTTON_NUM_ALT) {
+        if(ui_mode == UI_MODE_LEARN){
+            midi_exit_learn_mode();
+            set_ui_mode(UI_MODE_PLAY);
         }
-        if(alt->p[0] != 0){ // there is a mod for that button
-            set_led_bar(alt->p[0], alt->min, alt->max);
-            set_param_selected(num, false);   
-        } else if(alt_sel->p[0] != 0){ // there is an alt-sel for that button
-            float cur = *alt_sel->p[0];
-            if(cur < alt_sel->max)
-            {
-                set_param_vals(alt_sel->p, cur + 1);
-            }
-            else
-            {
-                set_param_vals(alt_sel->p, alt_sel->min);
-            }
-        }
-    } else {
-        handle_matrix_press(num);
-        if(mod->p[0] != 0){ // there is a mod for that button press
-            set_led_bar(mod->p[0], mod->min, mod->max);
-            set_param_selected(num, false);
-        } else if(sel->p[0] != 0){ // there is a sel for that button press
-            float cur = *sel->p[0];
-            if(cur < sel->max){
-                set_param_vals(sel->p, cur + 1);
+        return;
+    }
+    switch(ui_mode){
+        case UI_MODE_PLAY: {
+            struct Mod *mod = &Mods[num];
+            struct Alt *alt = &Alts[num];
+            struct Sel *sel = &Sels[num];
+            struct AltSel *alt_sel = &AltSels[num];
+            if(alt_held()){
+                if(num == BUTTON_NUM_LEARN){
+                    midi_enter_learn_mode();
+                    set_ui_mode(UI_MODE_LEARN);
+                    return;
+                }
+                if(num == BUTTON_NUM_POLY_MOD){
+                    poly_mod_active = !poly_mod_active;
+                    return;
+                }
+                if(alt->p[0] != 0){ // there is a mod for that button
+                    set_led_bar(alt->p[0], alt->min, alt->max);
+                    set_param_selected(num, false);   
+                } else if(alt_sel->p[0] != 0){ // there is an alt-sel for that button
+                    float cur = *alt_sel->p[0];
+                    if(cur < alt_sel->max)
+                    {
+                        set_param_vals(alt_sel->p, cur + 1);
+                    }
+                    else
+                    {
+                        set_param_vals(alt_sel->p, alt_sel->min);
+                    }
+                }
             } else {
-                set_param_vals(sel->p, sel->min);
+                handle_matrix_press(num);
+                if(mod->p[0] != 0){ // there is a mod for that button press
+                    set_led_bar(mod->p[0], mod->min, mod->max);
+                    set_param_selected(num, false);
+                } else if(sel->p[0] != 0){ // there is a sel for that button press
+                    float cur = *sel->p[0];
+                    if(cur < sel->max){
+                        set_param_vals(sel->p, cur + 1);
+                    } else {
+                        set_param_vals(sel->p, sel->min);
+                    }
+                }
             }
+            break;
+        }
+        case UI_MODE_LEARN: {
+            midi_select_learn_target(num, alt_held());
+            break;
+        }
+        case UI_MODE_LOAD: {
+            break;
+        }
+        case UI_MODE_SAVE: {
+            break;
         }
     }
 }

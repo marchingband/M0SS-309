@@ -19,6 +19,12 @@
 #define BUTTON_NUM_MATRIX_COLUMN_4 25
 
 #define BUTTON_NUM_POLY_MOD 23
+#define BUTTON_NUM_LEARN 5
+
+#define UI_MODE_PLAY 0
+#define UI_MODE_LEARN 1
+#define UI_MODE_SAVE 2
+#define UI_MODE_LOAD 3
 
 #include <circle/timer.h>
 
@@ -34,5 +40,9 @@ struct Param {
 void scan_buttons(CTimer *timer);
 void process_buttons(CTimer *timer);
 void handle_encoder(bool up, u64 now);
+bool alt_held(void);
+void set_ui_mode(int mode);
+int get_ui_mode(void);
+int get_matrix_cc_for_button(int num);
 
 #endif

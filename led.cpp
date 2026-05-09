@@ -7,7 +7,9 @@
 #include "strings.h"
 
 #include "led.h"
+#include "buttons.h"
 #include "dsp.h"
+#include "midi.h"
 
 extern bool poly_mod_active;
 
@@ -37,6 +39,21 @@ static struct Pixel On = {
 static struct Pixel Off = {
     .red = 0, 
     .green = 0,
+    .blue = 0
+};
+static struct Pixel LightBlue = {
+    .red = 0,
+    .green = 1,
+    .blue = 1
+};
+static struct Pixel LightPink = {
+    .red = 2,
+    .green = 1,
+    .blue = 1
+};
+static struct Pixel LightGreen = {
+    .red = 1,
+    .green = 2,
     .blue = 0
 };
 
@@ -137,6 +154,22 @@ static struct Pixel pixel_fade(float val){
 }
 
 void render_leds(void){
+    if (get_ui_mode() == UI_MODE_LEARN) {
+        struct Pixel learn_pixel = LightPink;
+        if (get_learn_mode_state() == LEARN_MODE_SELECTED) {
+            learn_pixel = LightGreen;
+        } else if (get_learn_mode_state() == LEARN_MODE_LEARNED) {
+            learn_pixel = LightBlue;
+        }
+
+        for (unsigned i = 0; i < NUM_LED; i++) {
+            set_led(i, learn_pixel);
+        }
+
+        assert(led_strip != nullptr);
+        led_strip->Update();
+        return;
+    }
 
     set_led(0, *(Sels[8].p[0]) == 2 ? Green : Off); // OSC 2 TRI
     set_led(1, *(Sels[8].p[0]) == 1 ? Green : Off); // OSC 2 SQR
@@ -164,8 +197,8 @@ void render_leds(void){
         }
     }
 
-    // modulation signals
-    if(poly_mod_active){
+    if(!poly_mod_active){
+        // mod matrix signals
         set_matrix(0, 0, pixel_fade(lfo * (*(CCs[26].p[0])))); // LFO->OS1
         set_matrix(0, 1, pixel_fade(lfo * (*(CCs[27].p[0])))); // LFO->PW1
         set_matrix(0, 2, pixel_fade(lfo * (*(CCs[28].p[0])))); // LFO->VCF
@@ -188,7 +221,7 @@ void render_leds(void){
         set_matrix(3, 1, pixel_fade(0 * (*(CCs[42].p[0])))); // OS2->PW1
         set_matrix(3, 2, pixel_fade(0 * (*(CCs[43].p[0])))); // OS2->VCF
     } else {
-        // poly mod signals
+        // poly mod matrix signals
         set_matrix(0, 0, pixel_fade(lfo * (*(CCs[44].p[0])))); // LFO->OS1
         set_matrix(0, 1, pixel_fade(lfo * (*(CCs[45].p[0])))); // LFO->PW1
         set_matrix(0, 2, pixel_fade(lfo * (*(CCs[46].p[0])))); // LFO->VCF
