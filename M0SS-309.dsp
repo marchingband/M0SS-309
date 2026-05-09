@@ -39,15 +39,14 @@ ctf     = filG(hslider("ctf[mod:11][midi:9]", 1,     0,     1,   0.001)) : si.sm
 res     = filG(hslider("res[mod:5][midi:10]", 0.707, 0.707, 9.9, 0.001)) : si.smoo;
 
 // OSC
-os1_waveform = osc1G(hslider("waveform[sel:28][midi:11]", 0, 0, 1, 0));
+os1_waveform = osc1G(hslider("waveform[sel:28][midi:11]", 0, 0, 1, 1));
 os1_pw  = osc1G(hslider("pw[alt:28][midi:12]", 0.5, 0.1, 0.5, 0.001)) : si.smoo;
 sync = osc1G(hslider("sync[sel:2][midi:13]", 0, 0, 1, 1));
 
-os2_waveform = osc2G(hslider("waveform[sel:8][midi:14]", 0, 0, 2, 0));
+os2_waveform = osc2G(hslider("waveform[sel:8][midi:14]", 0, 0, 2, 1));
 os2_pw = osc2G(hslider("pw[alt:8][midi:15]",    0.5,  0.1, 0.5,   0.001)) : si.smoo;
 
-_tune = osc2G(hslider("tune[mod:14][midi:16]", 0, -6400, 6400, 1));
-tune = clamp(-2400, 2400, _tune);
+tune = osc2G(hslider("tune[mod:14][midi:16]", 0, -24, 24, 1));
 dtn = osc2G(hslider("fine[alt:14][midi:17]", 0, 0, 100, 0.001)) : si.smoo;
 range = osc2G(hslider("hi-lo[sel:20][midi:18]", 0, 0, 1, 1));
 key_track = osc2G(hslider("kt[alt-sel:20][midi:19]", 1, 0, 1, 1));
@@ -60,7 +59,6 @@ noise_vol  = mixerG(hslider("noise[alt:19][midi:22]",    0, 0, 1, 0.001)) : si.s
 //lfo
 lfo_waveform = lfoG(hslider("waveform[sel:4][midi:23]", 2, 0, 2, 1));
 lfo_rate = lfoG(hslider("rate[mod:16][midi:24]", 0.5, 0.1, 10, 0.001)) : si.smoo;
-lfo_initial = lfoG(hslider("init[alt:16][midi:25]", 0, 0, 1, 0.001));
 
 lfo_saw = os.lf_saw(lfo_rate);
 lfo_sqr = os.lf_squarewave(lfo_rate);
@@ -108,7 +106,7 @@ p_os2_pw1 = pMatrixGos2(hslider("p.os2.pw1[style:knob][midi:60]", 0, 0, 1, 0.001
 p_os2_vcf = pMatrixGos2(hslider("p.os2.vcf[style:knob][midi:61]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
 poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
 
-transpose = hslider("transpose[style:knob][midi:63]", 0, -11, 11, 0.001);
+transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1);
 
 // FX start at [midi:70]
 
@@ -164,9 +162,9 @@ with {
     os1_pitch = max(0, os1_pitch_base + (os2_pitch * os2 * os2_os1)); // add FM
     // os1_pitch = clamp(0, 24000, os1_pitch_raw);
     
-    os2_pitch_ratio = ba.cent2ratio(tune + dtn);
+    os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn);
     os2_pitch_tracked = freq * os2_pitch_ratio;
-    os2_pitch_untracked = os2_pitch_ratio * C4;
+    os2_pitch_untracked = os2_pitch_ratio * (C4 + transpose);
     os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
     
     // os2_pitch = freq * ba.cent2ratio(os2_mod);

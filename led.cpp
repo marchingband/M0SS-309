@@ -58,14 +58,22 @@ static struct Pixel LightGreen = {
     .green = 2,
     .blue = 0
 };
+static struct Pixel LightRed = {
+    .red = 2,
+    .green = 0,
+    .blue = 0
+};
 
 static float led_bar[11] = {0};
 static float *led_bar_val_p = nullptr;
 static float led_bar_min = 0;
 static float led_bar_max = 0;
+static int led_bar_signed_int_value = 0;
+static int led_bar_cc_num = -1;
 
 static struct Pixel matrix[4][5] = {0};
 static void set_led(unsigned int idx, struct Pixel pixel);
+static struct Pixel pixel_fade(float val);
 static const unsigned BankLedMap[PRESET_BANKS] = {
     16, 15, 14, 13, 12,
     18, 19, 20, 21, 22,
@@ -111,17 +119,50 @@ static void splash_tick(void)
     led_strip->Update();
 }
 
+static bool uses_signed_int_led_bar(int cc_num)
+{
+    switch (cc_num) {
+    case CC_NUM_TUNE:
+    case CC_NUM_TRANSPOSE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 void set_led_bar(float *val, float min, float max){
+    led_bar_cc_num = -1;
     led_bar_val_p = val;
     led_bar_min = min;
     led_bar_max = max;
 }
 
+void set_led_bar_cc(float *val, float min, float max, int cc_num)
+{
+    led_bar_val_p = val;
+    led_bar_min = min;
+    led_bar_max = max;
+    led_bar_cc_num = cc_num;
+}
+
+void set_led_bar_signed_int_value(int value)
+{
+    led_bar_val_p = 0;
+    led_bar_signed_int_value = value;
+    led_bar_cc_num = CC_NUM_TRANSPOSE;
+}
+
 void update_led_bar(void){
-    if(led_bar_val_p == nullptr){
+    if (uses_signed_int_led_bar(led_bar_cc_num)) {
+        if (led_bar_val_p != nullptr) {
+            led_bar_signed_int_value = (int) (*led_bar_val_p);
+        }
         return;
     }
 
+    if(led_bar_val_p == nullptr){
+        return;
+    }
     float val = *led_bar_val_p;
     float max = led_bar_max;
 
@@ -135,6 +176,60 @@ void update_led_bar(void){
             led_bar[i] = 0;
         } else {
             led_bar[i] = out - i; // just the fractional part
+        }
+    }
+}
+
+static void render_linear_led_bar(void)
+{
+    set_led(31, led_bar[10] == 0 ? Off : led_bar[10] == 1 ? On : pixel_fade(led_bar[10])); // 10
+    set_led(32, led_bar[9] == 0 ? Off : led_bar[9] == 1 ? On : pixel_fade(led_bar[9])); // 9
+    set_led(33, led_bar[8] == 0 ? Off : led_bar[8] == 1 ? On : pixel_fade(led_bar[8])); // 8
+    set_led(34, led_bar[7] == 0 ? Off : led_bar[7] == 1 ? On : pixel_fade(led_bar[7])); // 7
+    set_led(35, led_bar[6] == 0 ? Off : led_bar[6] == 1 ? On : pixel_fade(led_bar[6])); // 6
+    set_led(36, led_bar[5] == 0 ? Off : led_bar[5] == 1 ? On : pixel_fade(led_bar[5])); // 5
+    set_led(37, led_bar[4] == 0 ? Off : led_bar[4] == 1 ? On : pixel_fade(led_bar[4])); // 4
+    set_led(38, led_bar[3] == 0 ? Off : led_bar[3] == 1 ? On : pixel_fade(led_bar[3])); // 3
+    set_led(39, led_bar[2] == 0 ? Off : led_bar[2] == 1 ? On : pixel_fade(led_bar[2])); // 2
+    set_led(40, led_bar[1] == 0 ? Off : led_bar[1] == 1 ? On : pixel_fade(led_bar[1])); // 1
+    set_led(41, led_bar[0] == 0 ? Off : led_bar[0] == 1 ? On : pixel_fade(led_bar[0])); // 0
+}
+
+static void render_signed_int_led_bar(void)
+{
+    for (int i = 31; i <= 41; i++) {
+        set_led(i, Off);
+    }
+
+    set_led(41, On); // zero marker
+
+    int magnitude = led_bar_signed_int_value < 0 ? -led_bar_signed_int_value : led_bar_signed_int_value;
+    if (magnitude == 0) {
+        return;
+    }
+
+    struct Pixel sign_pixel = led_bar_signed_int_value > 0 ? Green : Red;
+    struct Pixel light_sign_pixel = led_bar_signed_int_value > 0 ? LightGreen : LightRed;
+
+    int light_count = magnitude < 10 ? magnitude : 10;
+    int sign_count = magnitude > 10 ? (magnitude - 10 < 10 ? magnitude - 10 : 10) : 0;
+    int blue_count = magnitude > 20 ? (magnitude - 20 < 9 ? magnitude - 20 : 9) : 0;
+
+    for (int led = 1; led <= 10; led++) {
+        struct Pixel pixel = Off;
+
+        if (led <= light_count) {
+            pixel = light_sign_pixel;
+        }
+        if (led <= sign_count) {
+            pixel = sign_pixel;
+        }
+        if (led <= blue_count) {
+            pixel = Blue;
+        }
+
+        if (pixel.red != 0 || pixel.green != 0 || pixel.blue != 0) {
+            set_led(41 - led, pixel);
         }
     }
 }
@@ -328,17 +423,11 @@ void render_leds(void){
     set_led(30, matrix[3][2]); // OS2->VCF
 
     update_led_bar();
-    set_led(31, led_bar[10] == 0 ? Off : led_bar[10] == 1 ? On : pixel_fade(led_bar[10])); // 10
-    set_led(32, led_bar[9] == 0 ? Off : led_bar[9] == 1 ? On : pixel_fade(led_bar[9])); // 9
-    set_led(33, led_bar[8] == 0 ? Off : led_bar[8] == 1 ? On : pixel_fade(led_bar[8])); // 8
-    set_led(34, led_bar[7] == 0 ? Off : led_bar[7] == 1 ? On : pixel_fade(led_bar[7])); // 7
-    set_led(35, led_bar[6] == 0 ? Off : led_bar[6] == 1 ? On : pixel_fade(led_bar[6])); // 6
-    set_led(36, led_bar[5] == 0 ? Off : led_bar[5] == 1 ? On : pixel_fade(led_bar[5])); // 5
-    set_led(37, led_bar[4] == 0 ? Off : led_bar[4] == 1 ? On : pixel_fade(led_bar[4])); // 4
-    set_led(38, led_bar[3] == 0 ? Off : led_bar[3] == 1 ? On : pixel_fade(led_bar[3])); // 3
-    set_led(39, led_bar[2] == 0 ? Off : led_bar[2] == 1 ? On : pixel_fade(led_bar[2])); // 2
-    set_led(40, led_bar[1] == 0 ? Off : led_bar[1] == 1 ? On : pixel_fade(led_bar[1])); // 1
-    set_led(41, led_bar[0] == 0 ? Off : led_bar[0] == 1 ? On : pixel_fade(led_bar[0])); // 0
+    if (uses_signed_int_led_bar(led_bar_cc_num)) {
+        render_signed_int_led_bar();
+    } else {
+        render_linear_led_bar();
+    }
 
     assert(led_strip != nullptr);
     led_strip->Update();

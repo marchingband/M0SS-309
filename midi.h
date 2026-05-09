@@ -25,7 +25,9 @@
 #define LEARN_MODE_SELECTED 1
 #define LEARN_MODE_LEARNED 2
 
+#define CC_NUM_TUNE 16
 #define CC_NUM_POLYMOD 62
+#define CC_NUM_TRANSPOSE 63
 
 extern u8 cc_map[NUM_CC_MAP];
 extern int mode_learn_current_cc;
