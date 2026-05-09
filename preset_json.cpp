@@ -165,11 +165,11 @@ static boolean parse_float_token(const char *text, char **endptr, float *out)
     return TRUE;
 }
 
-static boolean parse_float_value(const char *buf, const char *key, float *out)
+static boolean parse_float_value_if_present(const char *buf, const char *key, float *out)
 {
     const char *loc = find_json_key(buf, key);
     if (loc == 0) {
-        return FALSE;
+        return TRUE;
     }
 
     const char *colon = strchr(loc, ':');
@@ -311,7 +311,7 @@ boolean preset_json_read(
 )
 {
     for (unsigned i = 0; i < field_count; i++) {
-        if (!parse_float_value(buf, fields[i].key, &patch_values[i])) {
+        if (!parse_float_value_if_present(buf, fields[i].key, &patch_values[i])) {
             return FALSE;
         }
     }

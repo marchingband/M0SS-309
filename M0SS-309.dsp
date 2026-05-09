@@ -106,7 +106,11 @@ p_nse_pw2 = pMatrixGnse(hslider("p.nse.pw2[style:knob][midi:58]", 0, 0, 1, 0.001
 p_os2_os1 = pMatrixGos2(hslider("p.os2.os1[style:knob][midi:59]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
 p_os2_pw1 = pMatrixGos2(hslider("p.os2.pw1[style:knob][midi:60]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
 p_os2_vcf = pMatrixGos2(hslider("p.os2.vcf[style:knob][midi:61]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
-poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo : ba.lin2LogGain;
+poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
+
+transpose = hslider("transpose[style:knob][midi:63]", 0, -11, 11, 0.001);
+
+// FX start at [midi:70]
 
 // mod path ranges in cents
 LFO_PCH_RC = 2400;
@@ -155,7 +159,7 @@ with {
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
     pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
 
-    freq = hslider("freq_%x", 40, 0, 127, 1) : ba.midikey2hz;
+    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz;
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);
     os1_pitch = max(0, os1_pitch_base + (os2_pitch * os2 * os2_os1)); // add FM
     // os1_pitch = clamp(0, 24000, os1_pitch_raw);

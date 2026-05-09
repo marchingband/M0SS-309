@@ -6,7 +6,7 @@
 
 struct PresetPatchField {
     const char *key;
-    unsigned cc_index;
+    unsigned field_id;
 };
 
 boolean preset_json_write(

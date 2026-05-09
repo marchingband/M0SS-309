@@ -8,6 +8,8 @@
 #include "dsp.h"
 #include "buttons.h"
 #include "midi.h"
+#include "audio.h"
+#include "mono_mode.h"
 #include "preset_json.h"
 #include "strings.h"
 
@@ -17,6 +19,10 @@ static const u64 CursorBlinkIntervalUs = 250000ULL;
 static const unsigned JsonBufferSize = 16384;
 static const int DefaultPresetBank = 0;
 static const int DefaultPresetSlot = PRESET_SLOTS - 1;
+
+enum PresetFieldId {
+    PRESET_FIELD_MONO_MODE = 1000
+};
 
 bool preset_store_ready = false;
 bool preset_exists[PRESET_BANKS][PRESET_SLOTS] = {0};
@@ -90,6 +96,15 @@ static const struct PresetPatchField s_PatchFields[] = {
     {"poly_mod_matrix_os2_pw1", 60},
     {"poly_mod_matrix_os2_vcf", 61},
     {"poly_mod", 62},
+    {"mono_mode", PRESET_FIELD_MONO_MODE},
+    {"fx_chorus_mode", 70},
+    {"fx_delay_time", 71},
+    {"fx_delay_fb", 72},
+    {"fx_delay_mix", 73},
+    {"fx_reverb_time", 74},
+    {"fx_reverb_feedback", 75},
+    {"fx_reverb_mix", 76},
+    {"fx_volume", 77},
 };
 static char s_JsonBuffer[JsonBufferSize];
 static float s_PatchValues[sizeof(s_PatchFields) / sizeof(s_PatchFields[0])];
@@ -155,22 +170,45 @@ static float clampf(float min_value, float max_value, float value)
 static void snapshot_patch_values(float *patch_values, unsigned field_count)
 {
     for (unsigned i = 0; i < field_count; i++) {
-        unsigned cc_index = s_PatchFields[i].cc_index;
-        patch_values[i] = CCs[cc_index].p[0] != 0 ? *(CCs[cc_index].p[0]) : 0.0f;
+        unsigned field_id = s_PatchFields[i].field_id;
+        if (field_id > 0 && field_id < NUM_CC) {
+            patch_values[i] = CCs[field_id].p[0] != 0 ? *(CCs[field_id].p[0]) : 0.0f;
+            continue;
+        }
+
+        switch (field_id) {
+        case PRESET_FIELD_MONO_MODE:
+            patch_values[i] = mono_mode ? 1.0f : 0.0f;
+            break;
+        default:
+            patch_values[i] = 0.0f;
+            break;
+        }
     }
 }
 
 static void apply_patch_values(const float *patch_values, unsigned field_count)
 {
     for (unsigned i = 0; i < field_count; i++) {
-        unsigned cc_index = s_PatchFields[i].cc_index;
-        struct CC *cc = &CCs[cc_index];
-        if (cc->p[0] == 0) {
+        unsigned field_id = s_PatchFields[i].field_id;
+        if (field_id > 0 && field_id < NUM_CC) {
+            struct CC *cc = &CCs[field_id];
+            if (cc->p[0] == 0) {
+                continue;
+            }
+
+            float clamped = clampf(cc->min, cc->max, patch_values[i]);
+            set_param_vals(cc->p, clamped);
             continue;
         }
 
-        float clamped = clampf(cc->min, cc->max, patch_values[i]);
-        set_param_vals(cc->p, clamped);
+        switch (field_id) {
+        case PRESET_FIELD_MONO_MODE:
+            midi_set_mono_mode(patch_values[i] >= 0.5f);
+            break;
+        default:
+            break;
+        }
     }
 }
 
@@ -451,6 +489,7 @@ static bool read_preset_file(int bank, int slot)
     }
 
     s_JsonBuffer[read] = '\0';
+    snapshot_patch_values(s_PatchValues, sizeof(s_PatchFields) / sizeof(s_PatchFields[0]));
     if (!preset_json_read(
             s_JsonBuffer,
             s_PatchFields,
