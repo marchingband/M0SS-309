@@ -30,6 +30,7 @@ This will provide the following files:
 	bcm2712-rpi-5-b.dtb	device tree binary needed for Raspberry Pi 5
 	bcm2712d0-rpi-5-b.dtb	device tree binary needed for Raspberry Pi 5
 	bcm2710-rpi-zero-2-w.dtb device tree binary needed for Raspberry Pi Zero 2 W
+	bcm2710-rpi-cm0.dtb	device tree binary needed for Compute Module Zero
 	bcm2712d0.dtbo		device tree overlay needed for Raspberry Pi 5
 	LICENCE.broadcom	firmware license
 	COPYING.linux		license for the device tree binaries

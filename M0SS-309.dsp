@@ -17,46 +17,50 @@ matrixGlfo(x) = hgroup("[5]lfo matrix", x);
 matrixGenv(x) = hgroup("[6]env matrix", x);
 matrixGnse(x) = hgroup("[7]nse matrix", x);
 matrixGos2(x) = hgroup("[8]os2 matrix", x);
+pMatrixGlfo(x) = hgroup("[9]p lfo matrix", x);
+pMatrixGenv(x) = hgroup("[10]p env matrix", x);
+pMatrixGnse(x) = hgroup("[11]p nse matrix", x);
+pMatrixGos2(x) = hgroup("[12]p os2 matrix", x);
 
 // env_amp
-a = envG(hslider("[0][mod:20][midi:1]a", 0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
-d = envG(hslider("[1][mod:2][midi:2]d",  0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
-s = envG(hslider("[2][mod:26][midi:3]s", 1,     0,     1,  0.0001));
-r = envG(hslider("[3][mod:22][midi:4]r", 0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+a = envG(hslider("[0][mod:6][midi:1]a", 0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+d = envG(hslider("[1][mod:18][midi:2]d",  0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+s = envG(hslider("[2][mod:0][midi:3]s", 1,     0,     1,  0.0001));
+r = envG(hslider("[3][mod:26][midi:4]r", 0.001, 0.001, 1,  0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
 
 // env
-a_f = filEnvG(hslider("[0][mod:5][midi:5]a",  0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
-d_f = filEnvG(hslider("[1][mod:11][midi:6]d", 0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
-s_f = filEnvG(hslider("[2][mod:14][midi:7]s", 1,     0,     1,       0.0001));
-r_f = filEnvG(hslider("[3][mod:8][midi:8]r",  0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+a_f = filEnvG(hslider("[0][mod:3][midi:5]a",  0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+d_f = filEnvG(hslider("[1][mod:15][midi:6]d", 0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
+s_f = filEnvG(hslider("[2][mod:27][midi:7]s", 1,     0,     1,       0.0001));
+r_f = filEnvG(hslider("[3][mod:21][midi:8]r",  0.001, 0.001, 1,       0.0001) : log3 : it.remap(0.0, 1.0, 0.001, 20.0));
 
 // filter
-ctf     = filG(hslider("ctf[mod:18][midi:9]", 1,     0,     1,   0.001)) : si.smoo;
-res     = filG(hslider("res[mod:6][midi:10]", 0.707, 0.707, 9.9, 0.001)) : si.smoo;
+ctf     = filG(hslider("ctf[mod:11][midi:9]", 1,     0,     1,   0.001)) : si.smoo;
+res     = filG(hslider("res[mod:5][midi:10]", 0.707, 0.707, 9.9, 0.001)) : si.smoo;
 
 // OSC
-os1_waveform = osc1G(hslider("waveform[sel:9][midi:11]", 0, 0, 1, 0));
-os1_pw  = osc1G(hslider("pw[alt:9][midi:12]", 0.5, 0.1, 0.5, 0.001)) : si.smoo;
-sync = osc1G(hslider("sync[sel:3][midi:13]", 0, 0, 1, 1));
+os1_waveform = osc1G(hslider("waveform[sel:28][midi:11]", 0, 0, 1, 0));
+os1_pw  = osc1G(hslider("pw[alt:28][midi:12]", 0.5, 0.1, 0.5, 0.001)) : si.smoo;
+sync = osc1G(hslider("sync[sel:2][midi:13]", 0, 0, 1, 1));
 
-os2_waveform = osc2G(hslider("waveform[sel:27][midi:14]", 0, 0, 2, 0));
-os2_pw = osc2G(hslider("pw[alt:27][midi:15]",    0.5,  0.1, 0.5,   0.001)) : si.smoo;
+os2_waveform = osc2G(hslider("waveform[sel:8][midi:14]", 0, 0, 2, 0));
+os2_pw = osc2G(hslider("pw[alt:8][midi:15]",    0.5,  0.1, 0.5,   0.001)) : si.smoo;
 
-_tune = osc2G(hslider("tune[mod:15][midi:16]", 0, -6400, 6400, 1));
+_tune = osc2G(hslider("tune[mod:14][midi:16]", 0, -6400, 6400, 1));
 tune = clamp(-2400, 2400, _tune);
-dtn = osc2G(hslider("fine[alt:15][midi:17]", 0, 0, 100, 0.001)) : si.smoo;
-range = osc2G(hslider("hi-lo[sel:21][midi:18]", 0, 0, 1, 1));
-key_track = osc2G(hslider("kt[alt-sel:21][midi:19]", 1, 0, 1, 1));
+dtn = osc2G(hslider("fine[alt:14][midi:17]", 0, 0, 100, 0.001)) : si.smoo;
+range = osc2G(hslider("hi-lo[sel:20][midi:18]", 0, 0, 1, 1));
+key_track = osc2G(hslider("kt[alt-sel:20][midi:19]", 1, 0, 1, 1));
 
 //mixer
-os1_vol  = mixerG(hslider("osc1[mod:19][midi:20]",      1, 0, 1, 0.001)) : si.smoo;
-os2_vol  = mixerG(hslider("osc2[mod:1][midi:21]",       0, 0, 1, 0.001)) : si.smoo;
-noise_vol  = mixerG(hslider("noise[alt:1][midi:22]",    0, 0, 1, 0.001)) : si.smoo;
+os1_vol  = mixerG(hslider("osc1[mod:1][midi:20]",      1, 0, 1, 0.001)) : si.smoo;
+os2_vol  = mixerG(hslider("osc2[mod:19][midi:21]",       0, 0, 1, 0.001)) : si.smoo;
+noise_vol  = mixerG(hslider("noise[alt:19][midi:22]",    0, 0, 1, 0.001)) : si.smoo;
 
 //lfo
-lfo_waveform = lfoG(hslider("waveform[sel:23][midi:23]", 2, 0, 2, 1));
-lfo_rate = lfoG(hslider("rate[mod:17][midi:24]", 0.5, 0.1, 10, 0.001)) : si.smoo;
-lfo_initial = lfoG(hslider("init[alt:17][midi:25]", 0, 0, 1, 0.001));
+lfo_waveform = lfoG(hslider("waveform[sel:4][midi:23]", 2, 0, 2, 1));
+lfo_rate = lfoG(hslider("rate[mod:16][midi:24]", 0.5, 0.1, 10, 0.001)) : si.smoo;
+lfo_initial = lfoG(hslider("init[alt:16][midi:25]", 0, 0, 1, 0.001));
 
 lfo_saw = os.lf_saw(lfo_rate);
 lfo_sqr = os.lf_squarewave(lfo_rate);
@@ -83,6 +87,27 @@ os2_os1 = matrixGos2(hslider("os2.os1[style:knob][midi:41]", 0, 0, 1, 0.001)) : 
 os2_pw1 = matrixGos2(hslider("os2.pw1[style:knob][midi:42]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
 os2_vcf = matrixGos2(hslider("os2.vcf[style:knob][midi:43]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
 
+//poly mod matrix
+p_lfo_os1 = pMatrixGlfo(hslider("p.lfo.os1[style:knob][midi:44]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_lfo_pw1 = pMatrixGlfo(hslider("p.lfo.pw1[style:knob][midi:45]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_lfo_vcf = pMatrixGlfo(hslider("p.lfo.vcf[style:knob][midi:46]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_lfo_os2 = pMatrixGlfo(hslider("p.lfo.os2[style:knob][midi:47]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_lfo_pw2 = pMatrixGlfo(hslider("p.lfo.pw2[style:knob][midi:48]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_env_os1 = pMatrixGenv(hslider("p.env.os1[style:knob][midi:49]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_env_pw1 = pMatrixGenv(hslider("p.env.pw1[style:knob][midi:50]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_env_vcf = pMatrixGenv(hslider("p.env.vcf[style:knob][midi:51]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_env_os2 = pMatrixGenv(hslider("p.env.os2[style:knob][midi:52]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_env_pw2 = pMatrixGenv(hslider("p.env.pw2[style:knob][midi:53]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_nse_os1 = pMatrixGnse(hslider("p.nse.os1[style:knob][midi:54]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_nse_pw1 = pMatrixGnse(hslider("p.nse.pw1[style:knob][midi:55]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_nse_vcf = pMatrixGnse(hslider("p.nse.vcf[style:knob][midi:56]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_nse_os2 = pMatrixGnse(hslider("p.nse.os2[style:knob][midi:57]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_nse_pw2 = pMatrixGnse(hslider("p.nse.pw2[style:knob][midi:58]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_os2_os1 = pMatrixGos2(hslider("p.os2.os1[style:knob][midi:59]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_os2_pw1 = pMatrixGos2(hslider("p.os2.pw1[style:knob][midi:60]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+p_os2_vcf = pMatrixGos2(hslider("p.os2.vcf[style:knob][midi:61]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
+poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo : ba.lin2LogGain;
+
 // mod path ranges in cents
 LFO_PCH_RC = 2400;
 LFO_CTF_RC = 9600;
@@ -102,12 +127,33 @@ with {
     env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
     env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
 
-    os1_mod = (lfo * lfo_os1 * LFO_PCH_RC) +    (env * env_os1 * ENV_PCH_RC) +  (noise * nse_os1 * NSE_PCH_RC);
-    // os1_mod = (lfo * lfo_os1 * LFO_PCH_RC) +    (env * env_os1 * ENV_PCH_RC) +  (noise * nse_os1 * NSE_PCH_RC) +    (os2 * os2_os1 * OSC_PCH_RC);
-    pw1_mod = (lfo * lfo_pw1 * PW_RC) +         (env * env_pw1 * PW_RC) +       (noise * nse_pw1 * PW_RC) +         (os2 * os2_pw1 * PW_RC);
-    vcf_mod = (lfo * lfo_vcf * LFO_CTF_RC) +    (env * env_vcf * ENV_CTF_RC) +  (noise * nse_vcf * NSE_CTF_RC) +    (os2 * os2_vcf * OSC_CTF_RC);
-    os2_mod = (lfo * lfo_os2 * LFO_PCH_RC) +    (env * env_os2 * ENV_PCH_RC) +  (noise * nse_os2 * NSE_PCH_RC);
-    pw2_mod = (lfo * lfo_pw2 * PW_RC) +         (env * env_pw2 * PW_RC) +       (noise * nse_pw2 * PW_RC);
+    // sum mod matrix and poly mod matrix
+    _lfo_os1 = lfo_os1 + (p_lfo_os1 * poly_mod);
+    _lfo_pw1 = lfo_pw1 + (p_lfo_pw1 * poly_mod);
+    _lfo_vcf = lfo_vcf + (p_lfo_vcf * poly_mod);
+    _lfo_os2 = lfo_os2 + (p_lfo_os2 * poly_mod);
+    _lfo_pw2 = lfo_pw2 + (p_lfo_pw2 * poly_mod);
+
+    _env_os1 = env_os1 + (p_env_os1 * poly_mod);
+    _env_pw1 = env_pw1 + (p_env_pw1 * poly_mod);
+    _env_vcf = env_vcf + (p_env_vcf * poly_mod);
+    _env_os2 = env_os2 + (p_env_os2 * poly_mod);
+    _env_pw2 = env_pw2 + (p_env_pw2 * poly_mod);
+
+    _nse_os1 = nse_os1 + (p_nse_os1 * poly_mod);
+    _nse_pw1 = nse_pw1 + (p_nse_pw1 * poly_mod);
+    _nse_vcf = nse_vcf + (p_nse_vcf * poly_mod);
+    _nse_os2 = nse_os2 + (p_nse_os2 * poly_mod);
+    _nse_pw2 = nse_pw2 + (p_nse_pw2 * poly_mod);
+
+    _os2_pw1 = os2_pw1 + (p_os2_pw1 * poly_mod);
+    _os2_vcf = os2_vcf + (p_os2_vcf * poly_mod);
+
+    os1_mod = (lfo * _lfo_os1 * LFO_PCH_RC) +    (env * _env_os1 * ENV_PCH_RC) +  (noise * _nse_os1 * NSE_PCH_RC);
+    pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC) +         (os2 * _os2_pw1 * PW_RC);
+    vcf_mod = (lfo * _lfo_vcf * LFO_CTF_RC) +    (env * _env_vcf * ENV_CTF_RC) +  (noise * _nse_vcf * NSE_CTF_RC) +    (os2 * _os2_vcf * OSC_CTF_RC);
+    os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
+    pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
 
     freq = hslider("freq_%x", 40, 0, 127, 1) : ba.midikey2hz;
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);

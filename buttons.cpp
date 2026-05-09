@@ -46,11 +46,20 @@ struct Param param_selected = {
     .cc = false
 };
 
+bool poly_mod_active = false;
+
 const int param_matrix[4][5] = {
     {26,27,28,29,30},
     {31,32,33,34,35},
     {36,37,38,39,40},
     {41,42,43,-1,-1}
+};
+
+const int pmod_param_matrix[4][5] = {
+    {44,45,46,47,48},
+    {49,50,51,52,53},
+    {54,55,56,57,58},
+    {59,60,61,-1,-1}
 };
 
 int matrix_row_selected = 0;
@@ -153,7 +162,9 @@ void handle_matrix_press(int num){
         default:break;
     }
     if(matrix_column_selected != -1){
-        int param = param_matrix[matrix_row_selected][matrix_column_selected];
+        int param = poly_mod_active ?
+            pmod_param_matrix[matrix_row_selected][matrix_column_selected] :
+            param_matrix[matrix_row_selected][matrix_column_selected];
         if(param != -1){
             matrix_pick(param);
         }
@@ -161,13 +172,17 @@ void handle_matrix_press(int num){
 }
 
 void handle_button_press(int num){
+    if(num == BUTTON_NUM_ALT) return;
     CLogger::Get ()->Write (FromButtons, LogDebug, "handle_button_press %d", num);
-    handle_matrix_press(num);
     struct Mod *mod = &Mods[num];
     struct Alt *alt = &Alts[num];
     struct Sel *sel = &Sels[num];
     struct AltSel *alt_sel = &AltSels[num];
     if(alt_held()){
+        if(num == BUTTON_NUM_POLY_MOD){
+            poly_mod_active = !poly_mod_active;
+            return;
+        }
         if(alt->p[0] != 0){ // there is a mod for that button
             set_led_bar(alt->p[0], alt->min, alt->max);
             set_param_selected(num, false);   
@@ -183,6 +198,7 @@ void handle_button_press(int num){
             }
         }
     } else {
+        handle_matrix_press(num);
         if(mod->p[0] != 0){ // there is a mod for that button press
             set_led_bar(mod->p[0], mod->min, mod->max);
             set_param_selected(num, false);

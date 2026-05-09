@@ -1,7 +1,7 @@
 #ifndef LED_H
 #define LED_H
 
-#define NUM_LED 38
+#define NUM_LED 42
 
 struct Pixel {
     u8 red;

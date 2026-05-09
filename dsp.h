@@ -8,7 +8,7 @@
 // #define NUM_VOICES 2
 #define NUM_VOICES 3
 #define NUM_DSP 3
-#define NUM_CC 44 // must be the highest CC value + 1, CC's are 1 indexed. This represents the [midi:n] from the .dsp file
+#define NUM_CC 63 // must be the highest CC value + 1, CC's are 1 indexed. This represents the [midi:n] from the .dsp file
 
 struct CC {
     float *p[NUM_DSP];
