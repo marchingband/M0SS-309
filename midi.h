@@ -34,6 +34,7 @@ extern int learn_mode_state;
 void handle_note_on(u8 note);
 void handle_note_off(u8 note);
 void handle_midi_byte(u8 byte);
+void midi_set_mono_mode(bool enabled);
 void midi_select_learn_target(int button, bool alt);
 
 #endif

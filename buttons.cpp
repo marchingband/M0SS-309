@@ -8,6 +8,7 @@
 #include "audio.h"
 #include "buttons.h"
 #include "midi.h"
+#include "mono_mode.h"
 #include "preset_store.h"
 
 static const char FromButtons[] = "buttons";
@@ -277,6 +278,10 @@ void handle_button_press(int num){
             if(alt_held()){
                 if(num == BUTTON_NUM_POLY_MOD){
                     poly_mod_active = !poly_mod_active;
+                    return;
+                }
+                if(num == BUTTON_NUM_MONO){
+                    midi_set_mono_mode(!mono_mode);
                     return;
                 }
                 if(alt->p[0] != 0){ // there is a mod for that button

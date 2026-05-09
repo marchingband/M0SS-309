@@ -15,6 +15,7 @@
 #include "buttons.h"
 #include "midi.h"
 #include "midiXparser.h"
+#include "mono_mode.h"
 
 #define STACK_SIZE (NUM_DSP * NUM_VOICES)
 
@@ -94,6 +95,58 @@ static void apply_mapped_cc(int internal_cc, u8 midi_val)
     float whole_steps = roundf(steps);
     float val = (cc->step * whole_steps) + cc->min;
     set_param_vals(cc->p, val);
+}
+
+static void clear_note_stack(void)
+{
+    head = 0;
+    tail = 0;
+    stack_cnt = 0;
+}
+
+static void release_all_voices(void)
+{
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            if (Signals[dsp].gate[voice] != 0) {
+                *(Signals[dsp].gate[voice]) = 0;
+            }
+        }
+    }
+}
+
+static bool peek_newest_note(uint8_t *out)
+{
+    if (stack_cnt == 0 || out == 0) {
+        return false;
+    }
+
+    int newest = (tail - 1 + STACK_SIZE) % STACK_SIZE;
+    *out = stack[newest];
+    return true;
+}
+
+static void assign_mono_note(uint8_t note)
+{
+    unsigned index = 0;
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            if (Signals[dsp].pitch[voice] != 0) {
+                *(Signals[dsp].pitch[voice]) = (float) note + mono_detune_for_voice(index);
+            }
+            if (Signals[dsp].gate[voice] != 0) {
+                *(Signals[dsp].gate[voice]) = 1;
+            }
+            index++;
+        }
+    }
+}
+
+void midi_set_mono_mode(bool enabled)
+{
+    mono_mode = enabled;
+    clear_note_stack();
+    release_all_voices();
 }
 
 void midi_select_learn_target(int button, bool alt)
@@ -177,6 +230,11 @@ bool steal_note(uint8_t *out) {
 }
 
 void handle_note_on(u8 note){
+    if (mono_mode) {
+        push_note(note);
+        assign_mono_note(note);
+        return;
+    }
 
     // check for retrigger
     for(u8 dsp=0; dsp<NUM_DSP; dsp++)
@@ -230,6 +288,18 @@ void handle_note_on(u8 note){
 }
 
 void handle_note_off(u8 note){
+    remove_note_from_stack(note);
+
+    if (mono_mode) {
+        uint8_t latest = 0;
+        if (peek_newest_note(&latest)) {
+            assign_mono_note(latest);
+        } else {
+            release_all_voices();
+        }
+        return;
+    }
+
     for(u8 dsp=0; dsp<NUM_DSP; dsp++)
     {
         for(u8 voice=0; voice<NUM_VOICES; voice++){

@@ -10,6 +10,7 @@
 #include "buttons.h"
 #include "dsp.h"
 #include "midi.h"
+#include "mono_mode.h"
 #include "preset_store.h"
 
 extern bool poly_mod_active;
@@ -222,8 +223,7 @@ void render_leds(void){
     
     set_led(3, *(Sels[20].p[0]) ? Red : Off);        // HI-LO
     set_led(4, *(AltSels[20].p[0]) ? Red : Off);     // KT
-    // set_led(5, *(Sels[3].p[0]) ? Red : Off);         // MONO
-    set_led(5, Off);                                 // MONO
+    set_led(5, mono_mode ? Red : Off);              // MONO
     set_led(6, *(Sels[2].p[0]) ? Red : Off);         // SYNC
 
     set_led(7, *(Sels[28].p[0]) == 0 ? Green : Off); // OSC 1 SAW
