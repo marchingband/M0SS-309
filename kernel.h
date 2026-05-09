@@ -21,6 +21,8 @@
 #include <circle/multicore.h>
 #include <circle/memory.h>
 #include <circle/sound/i2ssoundbasedevice.h>
+#include <SDCard/emmc.h>
+#include <fatfs/ff.h>
 #include <sensor/ky040.h>
 
 #include "audio.h"
@@ -51,6 +53,8 @@ private:
 	CInterruptSystem	m_Interrupt;
 	CTimer				m_Timer;
 	CLogger				m_Logger;
+	CEMMCDevice			m_EMMC;
+	FATFS				m_FileSystem;
 	CUSBController		*m_pUSB;
 	CGPIOManager		m_GPIOManager;
 	CKY040				m_RotaryEncoder;

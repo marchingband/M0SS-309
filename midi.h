@@ -25,6 +25,8 @@
 #define LEARN_MODE_SELECTED 1
 #define LEARN_MODE_LEARNED 2
 
+#define CC_NUM_POLYMOD 62
+
 extern u8 cc_map[NUM_CC_MAP];
 extern int mode_learn_current_cc;
 extern int learn_mode_state;
@@ -32,8 +34,6 @@ extern int learn_mode_state;
 void handle_note_on(u8 note);
 void handle_note_off(u8 note);
 void handle_midi_byte(u8 byte);
-void midi_enter_learn_mode(void);
-void midi_exit_learn_mode(void);
 void midi_select_learn_target(int button, bool alt);
 
 #endif

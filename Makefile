@@ -9,6 +9,8 @@ OBJS = $(patsubst %.c, %.o, $(wildcard *.c)) $(patsubst %.cpp, %.o, $(wildcard *
 LIBS	= $(CIRCLEHOME)/lib/libcircle.a \
 		$(CIRCLEHOME)/lib/sched/libsched.a \
 		$(CIRCLEHOME)/lib/sound/libsound.a \
+		$(CIRCLEHOME)/addon/fatfs/libfatfs.a \
+		$(CIRCLEHOME)/addon/SDCard/libsdcard.a \
 		$(CIRCLEHOME)/addon/sensor/libsensor.a \
 		$(CIRCLEHOME)/lib/usb/libusb.a \
 		$(CIRCLEHOME)/lib/usb/gadget/libusbgadget.a \

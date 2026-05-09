@@ -8,6 +8,7 @@
 #include "audio.h"
 #include "buttons.h"
 #include "midi.h"
+#include "preset_store.h"
 
 static const char FromButtons[] = "buttons";
 
@@ -72,6 +73,33 @@ bool alt_held(void){
     return button_state[BUTTON_NUM_ALT] == 0;
 }
 
+static bool handle_mode_switch_chord(int num)
+{
+    if (!alt_held()) {
+        return false;
+    }
+
+    switch (num) {
+    case BUTTON_NUM_SAVE:
+        ui_mode = UI_MODE_SAVE;
+        CLogger::Get ()->Write (FromButtons, LogNotice, "entered SAVE mode bank=%d slot=%d", preset_mode_bank, preset_mode_slot_cursor);
+        return true;
+    case BUTTON_NUM_LOAD:
+        preset_mode_bank = current_preset_bank;
+        preset_mode_slot_cursor = current_preset_slot;
+        ui_mode = UI_MODE_LOAD;
+        CLogger::Get ()->Write (FromButtons, LogNotice, "entered LOAD mode bank=%d slot=%d", preset_mode_bank, preset_mode_slot_cursor);
+        return true;
+    case BUTTON_NUM_LEARN:
+        mode_learn_current_cc = 0;
+        learn_mode_state = LEARN_MODE_READY;
+        ui_mode = UI_MODE_LEARN;
+        return true;
+    default:
+        return false;
+    }
+}
+
 void set_param_selected(int button, bool is_cc){
     param_selected.button = button;
     param_selected.alt = alt_held();
@@ -85,6 +113,16 @@ void set_param_vals(float *(&vals)[NUM_DSP], float val){
 }
 
 void handle_encoder(bool up, u64 now){
+    if (ui_mode == UI_MODE_SAVE || ui_mode == UI_MODE_LOAD) {
+        if (alt_held()) {
+            alt_consumed = true;
+            preset_move_bank_cursor(up ? 1 : -1);
+        } else {
+            preset_move_slot_cursor(up ? 1 : -1);
+        }
+        return;
+    }
+
     // CLogger::Get ()->Write (FromButtons, LogDebug, "handle_encoder %s", up ? "up" : "down");
     u64 passed = now - last_encoder_click;
     last_encoder_click = now;
@@ -220,12 +258,16 @@ int get_matrix_cc_for_button(int num)
 void handle_button_press(int num){
     CLogger::Get ()->Write (FromButtons, LogDebug, "handle_button_press %d", num);
     if(num == BUTTON_NUM_ALT) {
-        if(ui_mode == UI_MODE_LEARN){
-            midi_exit_learn_mode();
+        if(ui_mode == UI_MODE_LEARN || ui_mode == UI_MODE_SAVE || ui_mode == UI_MODE_LOAD) {
             ui_mode = UI_MODE_PLAY;
         }
         return;
     }
+
+    if (handle_mode_switch_chord(num)) {
+        return;
+    }
+
     switch(ui_mode){
         case UI_MODE_PLAY: {
             struct Mod *mod = &Mods[num];
@@ -233,11 +275,6 @@ void handle_button_press(int num){
             struct Sel *sel = &Sels[num];
             struct AltSel *alt_sel = &AltSels[num];
             if(alt_held()){
-                if(num == BUTTON_NUM_LEARN){
-                    midi_enter_learn_mode();
-                    ui_mode = UI_MODE_LEARN;
-                    return;
-                }
                 if(num == BUTTON_NUM_POLY_MOD){
                     poly_mod_active = !poly_mod_active;
                     return;
@@ -306,8 +343,23 @@ void process_buttons(CTimer *timer){
                     }
 
                     if(i == BUTTON_NUM_ENCODER){
-                        // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder pushed");
-                        *(Signals[0].gate[0]) = 1;
+                        if (ui_mode == UI_MODE_SAVE) {
+                            CLogger::Get ()->Write (FromButtons, LogNotice, "encoder press in SAVE mode bank=%d slot=%d", preset_mode_bank, preset_mode_slot_cursor);
+                            bool ok = preset_save_current_cursor();
+                            CLogger::Get ()->Write (FromButtons, ok ? LogNotice : LogWarning, "SAVE result=%u bank=%d slot=%d", ok ? 1U : 0U, preset_mode_bank, preset_mode_slot_cursor);
+                            if (ok) {
+                                ui_mode = UI_MODE_PLAY;
+                            }
+                        } else if (ui_mode == UI_MODE_LOAD) {
+                            CLogger::Get ()->Write (FromButtons, LogNotice, "encoder press in LOAD mode bank=%d slot=%d", preset_mode_bank, preset_mode_slot_cursor);
+                            bool ok = preset_load_current_cursor();
+                            CLogger::Get ()->Write (FromButtons, ok ? LogNotice : LogWarning, "LOAD result=%u bank=%d slot=%d", ok ? 1U : 0U, preset_mode_bank, preset_mode_slot_cursor);
+                            if (ok) {
+                                ui_mode = UI_MODE_PLAY;
+                            }
+                        } else {
+                            *(Signals[0].gate[0]) = 1;
+                        }
                     } else if(i != BUTTON_NUM_ALT) {
                         // CLogger::Get ()->Write (FromButtons, LogDebug, "button %d pushed", i);
                         handle_button_press(i);
@@ -328,8 +380,9 @@ void process_buttons(CTimer *timer){
                     button_state[i] = 1;
                     button_time[i] = now;
                     if(i == BUTTON_NUM_ENCODER){
-                        // CLogger::Get ()->Write (FromButtons, LogDebug, "encoder released");
-                        *(Signals[0].gate[0]) = 0;
+                        if (ui_mode != UI_MODE_SAVE && ui_mode != UI_MODE_LOAD) {
+                            *(Signals[0].gate[0]) = 0;
+                        }
                     } else if (i == BUTTON_NUM_ALT) {
                         if (!alt_consumed) {
                             handle_button_press(i);

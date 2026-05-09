@@ -10,6 +10,7 @@
 #include "buttons.h"
 #include "dsp.h"
 #include "midi.h"
+#include "preset_store.h"
 
 extern bool poly_mod_active;
 
@@ -64,6 +65,15 @@ static float led_bar_max = 0;
 
 static struct Pixel matrix[4][5] = {0};
 static void set_led(unsigned int idx, struct Pixel pixel);
+static const unsigned BankLedMap[PRESET_BANKS] = {
+    16, 15, 14, 13, 12,
+    18, 19, 20, 21, 22,
+    27, 26, 25, 24, 23,
+    28, 29, 30
+};
+static const unsigned SlotLedMap[PRESET_SLOTS] = {
+    41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31
+};
 
 #define SPLASH_INTERVAL_US 100000ULL
 static u64 splash_last_update_us = 0;
@@ -153,6 +163,36 @@ static struct Pixel pixel_fade(float val){
     return pixel;
 }
 
+static void render_preset_browser(void)
+{
+    for (unsigned i = 0; i < NUM_LED; i++) {
+        set_led(i, Off);
+    }
+
+    for (int bank = 0; bank < PRESET_BANKS; bank++) {
+        set_led(BankLedMap[bank], bank == preset_mode_bank ? On : Off);
+    }
+
+    for (int slot = 0; slot < PRESET_SLOTS; slot++) {
+        bool exists = preset_exists[preset_mode_bank][slot];
+        struct Pixel pixel = exists ? LightPink : LightGreen;
+        if (ui_mode == UI_MODE_LOAD && !exists) {
+            pixel = Off;
+        } else {
+            if (preset_mode_bank == current_preset_bank && slot == current_preset_slot) {
+                pixel = LightBlue;
+            }
+            if (slot == preset_mode_slot_cursor && preset_is_cursor_visible()) {
+                pixel = Red;
+            }
+        }
+        set_led(SlotLedMap[slot], pixel);
+    }
+
+    assert(led_strip != nullptr);
+    led_strip->Update();
+}
+
 void render_leds(void){
     if (ui_mode == UI_MODE_LEARN) {
         struct Pixel learn_pixel = LightPink;
@@ -168,6 +208,11 @@ void render_leds(void){
 
         assert(led_strip != nullptr);
         led_strip->Update();
+        return;
+    }
+
+    if (ui_mode == UI_MODE_SAVE || ui_mode == UI_MODE_LOAD) {
+        render_preset_browser();
         return;
     }
 

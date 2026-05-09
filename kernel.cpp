@@ -23,10 +23,12 @@
 #include "buttons.h"
 #include "dsp.h"
 #include "led.h"
+#include "preset_store.h"
 #include "uart.h"
 #include "buttons.h"
 
 #define DAC_I2C_ADDRESS	0
+#define DRIVE PRESET_DRIVE
 #define QUEUE_SIZE_MSECS 1000
 #define KY040_CLK_PIN	22
 #define KY040_DT_PIN	23
@@ -40,6 +42,7 @@ CKernel::CKernel (void)
 :	
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
+	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
 	m_pUSB (new CUSBHCIDevice (&m_Interrupt, &m_Timer, TRUE)), // TRUE: enable plug-and-play
 	m_GPIOManager (&m_Interrupt),
 	// m_RotaryEncoder (KY040_CLK_PIN, KY040_DT_PIN, KY040_SW_PIN, &m_GPIOManager),
@@ -80,6 +83,25 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		bOK = m_Timer.Initialize ();
+	}
+
+	if (bOK)
+	{
+		bOK = m_EMMC.Initialize ();
+	}
+
+	if (bOK)
+	{
+		if (f_mount (&m_FileSystem, DRIVE, 1) != FR_OK)
+		{
+			m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
+			bOK = FALSE;
+		}
+	}
+
+	if (bOK)
+	{
+		preset_store_init(&m_FileSystem);
 	}
 
 	if (bOK)
@@ -151,6 +173,7 @@ TShutdownMode CKernel::Run (void)
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
 	m_RotaryEncoder.RegisterEventHandler (EventHandler, this);
 	dsp_init(&m_Timer);
+	preset_store_finalize_boot_defaults();
 	init_midi_parser();
 	if (!CI2SSoundDevice->AllocateQueue (QUEUE_SIZE_MSECS)){
 		m_Logger.Write (FromKernel, LogPanic, "Cannot allocate output sound queue");

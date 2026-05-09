@@ -96,26 +96,13 @@ static void apply_mapped_cc(int internal_cc, u8 midi_val)
     set_param_vals(cc->p, val);
 }
 
-void midi_enter_learn_mode(void)
-{
-    mode_learn_current_cc = 0;
-    learn_mode_state = LEARN_MODE_READY;
-}
-
-void midi_exit_learn_mode(void)
-{
-    mode_learn_current_cc = 0;
-    learn_mode_state = LEARN_MODE_READY;
-}
-
 void midi_select_learn_target(int button, bool alt)
 {
-    const int kPolyModCC = 62;
     int cc_num = -1;
 
     if (alt && button == BUTTON_NUM_POLY_MOD) {
-        // In learn mode ALT+23 should target the poly.mod control, not the P.MOD toggle.
-        cc_num = kPolyModCC;
+        // In learn mode ALT+23 should target the polymod param, not the P.MOD toggle.
+        cc_num = CC_NUM_POLYMOD;
     } else {
         switch (button) {
         case BUTTON_NUM_MATRIX_ROW_0:

@@ -1,6 +1,8 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
+#include <circle/stdarg.h>
+
 // #include <circle/string.h>
 // #include <circle/stdarg.h>
 // #include <circle/util.h>

@@ -20,6 +20,8 @@
 
 #define BUTTON_NUM_POLY_MOD 23
 #define BUTTON_NUM_LEARN 5
+#define BUTTON_NUM_SAVE 12
+#define BUTTON_NUM_LOAD 24
 
 #define UI_MODE_PLAY 0
 #define UI_MODE_LEARN 1
