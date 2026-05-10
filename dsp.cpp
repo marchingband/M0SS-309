@@ -5,10 +5,72 @@
 
 #include "dsp_glue.h"
 #include "dsp.h"
+#include "logging.h"
+
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
+static const char FromDSPDebug[] = "DSP dbg";
+static const float DSPDebugHugeThreshold = 1.0e12f;
+static const float DSPDebugSmallDenomThreshold = 1.0e-9f;
+static const void *s_DSPProbePtrs[NUM_DSP] = {0};
+static boolean s_DSPProbeLogged[NUM_DSP] = {0};
+
+static unsigned debug_core_index_for_ptr(const void *ptr)
+{
+    for (unsigned i = 0; i < NUM_DSP; i++) {
+        if (s_DSPProbePtrs[i] == ptr) {
+            return i;
+        }
+    }
+    return NUM_DSP;
+}
+
+static void debug_log_internal_fault(const void *dsp_ptr, int frame, const char *name, const char *kind, float value)
+{
+    unsigned core_index = debug_core_index_for_ptr(dsp_ptr);
+    if (core_index >= NUM_DSP || s_DSPProbeLogged[core_index]) {
+        return;
+    }
+
+    CLogger::Get ()->Write (
+        FromDSPDebug,
+        LogNotice,
+        "core %u frame %u %s %s=%g",
+        core_index + 1,
+        (unsigned) frame,
+        kind,
+        name,
+        value
+    );
+    s_DSPProbeLogged[core_index] = TRUE;
+}
+
+static inline void m0ss309_debug_check_nonfinite(const void *dsp_ptr, int frame, const char *name, float value)
+{
+    if (!isfinite(value)) {
+        debug_log_internal_fault(dsp_ptr, frame, name, isnan(value) ? "NaN" : (value > 0.0f ? "+Inf" : "-Inf"), value);
+    }
+}
+
+static inline void m0ss309_debug_check_huge(const void *dsp_ptr, int frame, const char *name, float value)
+{
+    if (isfinite(value) && fabsf(value) > DSPDebugHugeThreshold) {
+        debug_log_internal_fault(dsp_ptr, frame, name, "huge", value);
+    }
+}
+
+static inline void m0ss309_debug_check_small_denom(const void *dsp_ptr, int frame, const char *name, float value)
+{
+    if (!isfinite(value)) {
+        debug_log_internal_fault(dsp_ptr, frame, name, isnan(value) ? "NaN-denom" : (value > 0.0f ? "+Inf-denom" : "-Inf-denom"), value);
+    } else if (fabsf(value) < DSPDebugSmallDenomThreshold) {
+        debug_log_internal_fault(dsp_ptr, frame, name, "small-denom", value);
+    }
+}
+#endif
+
 #include "M0SS-309.h"
 #include "audio.h"
 #include "buttons.h"
-#include "logging.h"
 
 static const char FromDSP[] = "DSP";
 
@@ -424,6 +486,12 @@ void dsp_init(CTimer *timer){
     dsp1 = newmydsp();
     dsp2 = newmydsp();
     dsp3 = newmydsp();
+
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
+    s_DSPProbePtrs[0] = dsp1;
+    s_DSPProbePtrs[1] = dsp2;
+    s_DSPProbePtrs[2] = dsp3;
+#endif
 
     initmydsp(dsp1, SAMPLE_RATE);
     initmydsp(dsp2, SAMPLE_RATE);

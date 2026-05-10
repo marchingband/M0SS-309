@@ -48,7 +48,7 @@ os2_pw = osc2G(hslider("pw[alt:8][midi:15]",    0.5,  0.1, 0.5,   0.001)) : si.s
 
 tune = osc2G(hslider("tune[mod:14][midi:16]", 0, -24, 24, 1));
 dtn = osc2G(hslider("fine[alt:14][midi:17]", 0, 0, 100, 0.001)) : si.smoo;
-range = osc2G(hslider("hi-lo[sel:20][midi:18]", 0, 0, 1, 1));
+range = osc2G(hslider("hi-lo[sel:20][midi:18]", 1, 0, 1, 1));
 key_track = osc2G(hslider("kt[alt-sel:20][midi:19]", 1, 0, 1, 1));
 
 //mixer
@@ -106,7 +106,7 @@ p_os2_pw1 = pMatrixGos2(hslider("p.os2.pw1[style:knob][midi:60]", 0, 0, 1, 0.001
 p_os2_vcf = pMatrixGos2(hslider("p.os2.vcf[style:knob][midi:61]", 0, 0, 1, 0.001)) : si.smoo : ba.lin2LogGain;
 poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
 
-transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1);
+transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1) : si.smoo;
 
 // FX start at [midi:70]
 
@@ -152,8 +152,8 @@ with {
     _os2_vcf = os2_vcf + (p_os2_vcf * poly_mod);
     _os2_os1 = os2_os1 + (p_os2_os1 * poly_mod);
 
-    os1_mod = (lfo * _lfo_os1 * LFO_PCH_RC) +    (env * _env_os1 * ENV_PCH_RC) +  (noise * _nse_os1 * NSE_PCH_RC);
-    pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC);
+    os1_mod = (lfo * _lfo_os1 * LFO_PCH_RC) +    (env * _env_os1 * ENV_PCH_RC) +  (noise * _nse_os1 * NSE_PCH_RC);     // os2_os1 is in the oscillator lib
+    pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC);          // os2_pw1 is in the oscillator lib
     vcf_mod = (lfo * _lfo_vcf * LFO_CTF_RC) +    (env * _env_vcf * ENV_CTF_RC) +  (noise * _nse_vcf * NSE_CTF_RC) +    (os2 * _os2_vcf * OSC_CTF_RC);
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
     pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
@@ -161,10 +161,13 @@ with {
     freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz;
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);
     
-    os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn);
+    os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn); // tune and detune ratio
     os2_pitch_tracked = freq * os2_pitch_ratio;
     os2_pitch_untracked = os2_pitch_ratio * (C4 + transpose);
-    os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
+    // os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
+    os2_pitch_hi = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
+    os2_pitch_lo = os2_pitch_hi * 2^(-10);
+    os2_pitch = os2_pitch_lo, os2_pitch_hi : ba.selectn(2, range);
     
     os1_pw_post = os1_pw + pw1_mod;
     os2_pw_post = os2_pw + pw2_mod;

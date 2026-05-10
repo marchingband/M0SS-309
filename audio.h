@@ -18,7 +18,8 @@
 #define MIDI_CC_MUTE 120
 #define MIDI_CC_RESET 121
 
-#define SAMPLE_RATE	48000
+// #define SAMPLE_RATE	48000
+#define SAMPLE_RATE	44100
 #define CHUNK_SIZE	1024
 // #define CHUNK_SIZE	1024 * 2
 // #define CHUNK_SIZE 1024 * 4

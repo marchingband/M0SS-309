@@ -11,7 +11,7 @@
 
 static const char FromVoiceManager[] = "voice manager";
 
-#if APP_ENABLE_BENCH_LOGS
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
 #define CORE_USAGE_REPORT_INTERVAL_US 1000000ULL
 
 struct CoreUsageStats
@@ -127,7 +127,7 @@ CVoiceManager::~CVoiceManager (void)
 
 void CVoiceManager::Run (unsigned nCore)
 {
-#if APP_ENABLE_BENCH_LOGS
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
 	unsigned core_index = nCore > 0 ? nCore - 1 : 0;
 #endif
 
@@ -135,7 +135,7 @@ void CVoiceManager::Run (unsigned nCore)
         switch(nCore){
             case 1:
             {
-#if APP_ENABLE_BENCH_LOGS
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
                 u64 idle_start_us = CTimer::GetClockTicks64();
                 while(core_1_run == false){}
                 u64 run_start_us = CTimer::GetClockTicks64();
@@ -156,7 +156,7 @@ void CVoiceManager::Run (unsigned nCore)
             }
             case 2:
             {
-#if APP_ENABLE_BENCH_LOGS
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
                 u64 idle_start_us = CTimer::GetClockTicks64();
                 while(core_2_run == false){}
                 u64 run_start_us = CTimer::GetClockTicks64();
@@ -176,7 +176,7 @@ void CVoiceManager::Run (unsigned nCore)
             }
             case 3:
             {
-#if APP_ENABLE_BENCH_LOGS
+#if APP_ENABLE_RUNTIME_DEBUG_LOGS
                 u64 idle_start_us = CTimer::GetClockTicks64();
                 while(core_3_run == false){}
                 u64 run_start_us = CTimer::GetClockTicks64();
