@@ -152,50 +152,41 @@ with {
     _os2_vcf = os2_vcf + (p_os2_vcf * poly_mod);
 
     os1_mod = (lfo * _lfo_os1 * LFO_PCH_RC) +    (env * _env_os1 * ENV_PCH_RC) +  (noise * _nse_os1 * NSE_PCH_RC);
-    pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC) +         (os2 * _os2_pw1 * PW_RC);
+    // pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC) +         (os2 * _os2_pw1 * PW_RC);
+    pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC);
     vcf_mod = (lfo * _lfo_vcf * LFO_CTF_RC) +    (env * _env_vcf * ENV_CTF_RC) +  (noise * _nse_vcf * NSE_CTF_RC) +    (os2 * _os2_vcf * OSC_CTF_RC);
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
     pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
 
     freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz;
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);
-    os1_pitch = max(0, os1_pitch_base + (os2_pitch * os2 * os2_os1)); // add FM
-    // os1_pitch = clamp(0, 24000, os1_pitch_raw);
+    // os1_pitch = max(0, os1_pitch_base + (os2_pitch * os2 * os2_os1)); // add FM
     
     os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn);
     os2_pitch_tracked = freq * os2_pitch_ratio;
     os2_pitch_untracked = os2_pitch_ratio * (C4 + transpose);
     os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
     
-    // os2_pitch = freq * ba.cent2ratio(os2_mod);
-    
-    // os1_pitch_ratio = ba.cent2ratio(tune + dtn);
-    // os1_pitch_tracked =  freq * os1_pitch_ratio;
-    // os1_pitch_base = os1_pitch_ratio * 20, os1_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os1_mod));
-    // os1_pitch = os1_pitch_base + (os1_pitch_base * 5 * os2 * os2_os1); // add FM
-
     os1_pw_post = os1_pw + pw1_mod;
     os2_pw_post = os2_pw + pw2_mod;
 
     keytrack_ratio = freq / 440.0;
     delta = log10(keytrack_ratio) / 3.0;
     ctf_tracked = ctf + delta;
-
-    // ctf_tracked_hz = ctf_hz * keytrack_ratio;
-    // ctf_tracked = ctf_tracked_hz / ma.SR;
     vcf_cutoff = ctf_tracked * 2^(vcf_mod / 1200) : clamp(0,1);
-    // vcf = ve.moogLadder(vcf_cutoff, res);
-    // vcf = ve.oberheimLPF(vcf_cutoff, res);
     vcf = ve.korg35LPF(vcf_cutoff, res);
-    
 
     pw_vosc_1 = 1, os1_pw_post : ba.selectn(2, os1_waveform);
     pw_vosc_2 = 1, os2_pw_post, 0.5 : ba.selectn(3, os2_waveform);
     ws_vosc_1 = 0, 1 : ba.selectn(2, os1_waveform);
     ws_vosc_2 = 0, 1, 0 : ba.selectn(3, os2_waveform);
 
-    os1 = variable_osc.hard_sync_variable_slave(os2_pitch, os1_pitch, pw_vosc_1, ws_vosc_1, sync);
-    os2 = variable_osc.hard_sync_variable_master(os2_pitch, pw_vosc_2, ws_vosc_2);
+    // hs_fm_osc_pair(_m_freq, s_freq, _m_pw, _s_pw, m_ws, s_ws, sync, fm)
+    osc_pair = variable_osc.hs_fm_osc_pair(os1_pitch_base, os2_pitch, pw_vosc_1, pw_vosc_2, ws_vosc_1, ws_vosc_2, sync, os2_os1);
+    os1 = osc_pair : (_,!);
+    os2 = osc_pair : (!,_);
+    // os1 = variable_osc.hard_sync_variable_master(os1_pitch, pw_vosc_1, ws_vosc_1);
+    // os2 = variable_osc.hard_sync_variable_slave(os1_pitch_base, os2_pitch, pw_vosc_2, ws_vosc_2, sync);
 
     audio = os1 * os1_vol, os2 * os2_vol, noise * noise_vol :> *(0.5);
     out = audio : vcf : *(env_amp);
