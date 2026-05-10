@@ -150,9 +150,9 @@ with {
 
     _os2_pw1 = os2_pw1 + (p_os2_pw1 * poly_mod);
     _os2_vcf = os2_vcf + (p_os2_vcf * poly_mod);
+    _os2_os1 = os2_os1 + (p_os2_os1 * poly_mod);
 
     os1_mod = (lfo * _lfo_os1 * LFO_PCH_RC) +    (env * _env_os1 * ENV_PCH_RC) +  (noise * _nse_os1 * NSE_PCH_RC);
-    // pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC) +         (os2 * _os2_pw1 * PW_RC);
     pw1_mod = (lfo * _lfo_pw1 * PW_RC) +         (env * _env_pw1 * PW_RC) +       (noise * _nse_pw1 * PW_RC);
     vcf_mod = (lfo * _lfo_vcf * LFO_CTF_RC) +    (env * _env_vcf * ENV_CTF_RC) +  (noise * _nse_vcf * NSE_CTF_RC) +    (os2 * _os2_vcf * OSC_CTF_RC);
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
@@ -160,7 +160,6 @@ with {
 
     freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz;
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);
-    // os1_pitch = max(0, os1_pitch_base + (os2_pitch * os2 * os2_os1)); // add FM
     
     os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn);
     os2_pitch_tracked = freq * os2_pitch_ratio;
@@ -181,12 +180,9 @@ with {
     ws_vosc_1 = 0, 1 : ba.selectn(2, os1_waveform);
     ws_vosc_2 = 0, 1, 0 : ba.selectn(3, os2_waveform);
 
-    // hs_fm_osc_pair(_m_freq, s_freq, _m_pw, _s_pw, m_ws, s_ws, sync, fm)
-    osc_pair = variable_osc.hs_fm_osc_pair(os1_pitch_base, os2_pitch, pw_vosc_1, pw_vosc_2, ws_vosc_1, ws_vosc_2, sync, os2_os1);
+    osc_pair = variable_osc.hs_fm_osc_pair(os1_pitch_base, os2_pitch, pw_vosc_1, pw_vosc_2, ws_vosc_1, ws_vosc_2, sync, _os2_os1, _os2_pw1);
     os1 = osc_pair : (_,!);
     os2 = osc_pair : (!,_);
-    // os1 = variable_osc.hard_sync_variable_master(os1_pitch, pw_vosc_1, ws_vosc_1);
-    // os2 = variable_osc.hard_sync_variable_slave(os1_pitch_base, os2_pitch, pw_vosc_2, ws_vosc_2, sync);
 
     audio = os1 * os1_vol, os2 * os2_vol, noise * noise_vol :> *(0.5);
     out = audio : vcf : *(env_amp);
