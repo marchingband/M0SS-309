@@ -208,7 +208,9 @@ static void matrix_pick(int num){
     }
 }
 
-void handle_matrix_press(int num){
+static bool handle_matrix_press(int num){
+    bool matrix_button = true;
+
     switch(num){
         case BUTTON_NUM_MATRIX_ROW_0:
             matrix_row_selected = 0;
@@ -237,8 +239,15 @@ void handle_matrix_press(int num){
         case BUTTON_NUM_MATRIX_COLUMN_4:
             matrix_column_selected = 4;
             break;
-        default:break;
+        default:
+            matrix_button = false;
+            break;
     }
+
+    if (!matrix_button) {
+        return false;
+    }
+
     if(matrix_column_selected != -1){
         int param = poly_mod_active ?
             pmod_param_matrix[matrix_row_selected][matrix_column_selected] :
@@ -247,6 +256,8 @@ void handle_matrix_press(int num){
             matrix_pick(param);
         }
     }
+
+    return true;
 }
 
 int get_matrix_cc_for_button(int num)

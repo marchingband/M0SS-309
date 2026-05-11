@@ -116,6 +116,19 @@ static void release_all_voices(void)
     }
 }
 
+static void preload_mono_pitches(uint8_t note)
+{
+    unsigned index = 0;
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            if (Signals[dsp].pitch[voice] != 0) {
+                *(Signals[dsp].pitch[voice]) = (float) note + mono_detune_for_voice(index);
+            }
+            index++;
+        }
+    }
+}
+
 static bool peek_newest_note(uint8_t *out)
 {
     if (stack_cnt == 0 || out == 0) {
@@ -129,16 +142,13 @@ static bool peek_newest_note(uint8_t *out)
 
 static void assign_mono_note(uint8_t note)
 {
-    unsigned index = 0;
+    preload_mono_pitches(note);
+
     for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
         for (u8 voice = 0; voice < NUM_VOICES; voice++) {
-            if (Signals[dsp].pitch[voice] != 0) {
-                *(Signals[dsp].pitch[voice]) = (float) note + mono_detune_for_voice(index);
-            }
             if (Signals[dsp].gate[voice] != 0) {
                 *(Signals[dsp].gate[voice]) = 1;
             }
-            index++;
         }
     }
 }
@@ -148,6 +158,9 @@ void midi_set_mono_mode(bool enabled)
     mono_mode = enabled;
     clear_note_stack();
     release_all_voices();
+    if (enabled) {
+        preload_mono_pitches(60);
+    }
 }
 
 void midi_select_learn_target(int button, bool alt)
@@ -297,6 +310,7 @@ void handle_note_off(u8 note){
             assign_mono_note(latest);
         } else {
             release_all_voices();
+            preload_mono_pitches(60);
         }
         return;
     }
