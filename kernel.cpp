@@ -23,6 +23,7 @@
 #include "buttons.h"
 #include "dsp.h"
 #include "led.h"
+#include "midi_config.h"
 #include "preset_store.h"
 #include "uart.h"
 #include "buttons.h"
@@ -101,6 +102,7 @@ boolean CKernel::Initialize (void)
 
 	if (bOK)
 	{
+		midi_config_init(&m_FileSystem);
 		preset_store_init(&m_FileSystem);
 	}
 
@@ -187,6 +189,7 @@ TShutdownMode CKernel::Run (void)
 		// main loop
 		scan_buttons(&m_Timer);
 		process_buttons(&m_Timer);
+		midi_config_service(m_Timer.GetClockTicks64());
 		// render_leds();
 		read_uart();
 		assert (m_pUSB);

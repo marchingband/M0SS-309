@@ -25,6 +25,7 @@ static uint8_t stack[STACK_SIZE];
 static int head = 0;  // oldest note
 static int tail = 0;  // next free slot
 static int stack_cnt = 0;
+u8 midi_channel = 0;
 u8 cc_map[NUM_CC_MAP] = {0};
 int mode_learn_current_cc = 0;
 int learn_mode_state = LEARN_MODE_READY;
@@ -332,7 +333,11 @@ void handle_midi_byte(u8 byte)
         u8 *msg = getMidiMsg();
         u8 len = getMidiMsgLen();
         // CLogger::Get ()->Write (FromAudio, LogNotice, "got midi message len %d", len);
+        u8 channel = (msg[0] & 0x0F) + 1;
         u8 code = (msg[0] >> 4) & 0b00001111;
+        if (midi_channel != 0 && channel != midi_channel) {
+            return;
+        }
         if(code == MIDI_NOTE_ON && len > 2)
         {
             uint8_t velocity = msg[2] & 0b01111111;

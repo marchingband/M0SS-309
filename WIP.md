@@ -17,6 +17,7 @@ LAST :
 WIP :
 - json file format
 - osc2 needs an LFO in LO mode
+- midi channel
 
 NEXT :
-- midi channel
+- MIDI out

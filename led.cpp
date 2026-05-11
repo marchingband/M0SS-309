@@ -149,10 +149,15 @@ void set_led_bar_signed_int_value(int value)
 {
     led_bar_val_p = 0;
     led_bar_signed_int_value = value;
-    led_bar_cc_num = CC_NUM_TRANSPOSE;
+    led_bar_cc_num = -1;
 }
 
 void update_led_bar(void){
+    if (midi_channel_adjust_held()) {
+        led_bar_signed_int_value = (int) midi_channel;
+        return;
+    }
+
     if (uses_signed_int_led_bar(led_bar_cc_num)) {
         if (led_bar_val_p != nullptr) {
             led_bar_signed_int_value = (int) (*led_bar_val_p);
@@ -423,7 +428,7 @@ void render_leds(void){
     set_led(30, matrix[3][2]); // OS2->VCF
 
     update_led_bar();
-    if (uses_signed_int_led_bar(led_bar_cc_num)) {
+    if (midi_channel_adjust_held() || uses_signed_int_led_bar(led_bar_cc_num)) {
         render_signed_int_led_bar();
     } else {
         render_linear_led_bar();

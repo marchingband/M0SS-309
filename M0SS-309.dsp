@@ -163,10 +163,11 @@ with {
     
     os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn); // tune and detune ratio
     os2_pitch_tracked = freq * os2_pitch_ratio;
-    os2_pitch_untracked = os2_pitch_ratio * (C4 + transpose);
+    transpose_hz = transpose : ba.midikey2hz;
+    os2_pitch_untracked = os2_pitch_ratio * (C4 + transpose_hz);
     // os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
     os2_pitch_hi = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
-    os2_pitch_lo = os2_pitch_hi * 2^(-10);
+    os2_pitch_lo = os2_pitch_hi * 2^(-6);
     os2_pitch = os2_pitch_lo, os2_pitch_hi : ba.selectn(2, range);
     
     os1_pw_post = os1_pw + pw1_mod;

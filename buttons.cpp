@@ -9,6 +9,7 @@
 #include "audio.h"
 #include "buttons.h"
 #include "midi.h"
+#include "midi_config.h"
 #include "mono_mode.h"
 #include "preset_store.h"
 
@@ -53,6 +54,11 @@ struct Param param_selected = {
 bool poly_mod_active = false;
 int ui_mode = UI_MODE_PLAY;
 static bool alt_consumed = false;
+
+bool midi_channel_adjust_held(void)
+{
+    return alt_held() && button_pushes[BUTTON_NUM_MIDI_CHANNEL] != 0;
+}
 
 const int param_matrix[4][5] = {
     {26,27,28,29,30},
@@ -149,6 +155,16 @@ void set_param_vals(float *(&vals)[NUM_DSP], float val){
 }
 
 void handle_encoder(bool up, u64 now){
+    if (midi_channel_adjust_held()) {
+        if(up){
+            midi_channel += midi_channel < 16;
+        } else {
+            midi_channel -= midi_channel > 0;
+        }
+        midi_config_mark_dirty(now);
+        return;
+    }
+
     if (ui_mode == UI_MODE_SAVE || ui_mode == UI_MODE_LOAD) {
         if (alt_held()) {
             alt_consumed = true;
@@ -328,6 +344,9 @@ void handle_button_press(int num){
                     midi_set_mono_mode(!mono_mode);
                     return;
                 }
+                if(num == BUTTON_NUM_MIDI_CHANNEL){
+                    return;
+                }
                 if(alt->p[0] != 0){ // there is a mod for that button
                     set_param_led_bar_for_pointer(alt->p[0], alt->min, alt->max);
                     set_param_selected(num, false);   
@@ -387,6 +406,9 @@ void process_buttons(CTimer *timer){
                     button_time[i] = now;
                     if(i == BUTTON_NUM_ALT){
                         alt_consumed = false;
+                        if (midi_channel_adjust_held()) {
+                            alt_consumed = true;
+                        }
                     } else if (alt_held()) {
                         alt_consumed = true;
                     }

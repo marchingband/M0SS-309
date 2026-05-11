@@ -32,6 +32,7 @@
 extern u8 cc_map[NUM_CC_MAP];
 extern int mode_learn_current_cc;
 extern int learn_mode_state;
+extern u8 midi_channel;
 
 void handle_note_on(u8 note);
 void handle_note_off(u8 note);
