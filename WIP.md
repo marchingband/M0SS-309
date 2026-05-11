@@ -2,7 +2,6 @@ TODO:
 - improve colors
 - more reverb controls? difuse?
 - - adding size causes crashes?
-- display chorus modes
 - stuck notes
 
 LAST : 
@@ -18,6 +17,7 @@ LAST :
 - midi channel
 - MIDI out
 - glide
+- display chorus mode
 
 WIP :
 - json file format

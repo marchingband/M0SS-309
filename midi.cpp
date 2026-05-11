@@ -17,14 +17,19 @@
 #include "midiXparser.h"
 #include "mono_mode.h"
 
-#define STACK_SIZE (NUM_DSP * NUM_VOICES)
+#define MONO_STACK_SIZE (NUM_DSP * NUM_VOICES)
+#define VOICE_NOTE_NONE 0xFF
+#define VOICE_IDLE_ENV_THRESHOLD 0.0001f
 
 static const char FromMidi[] = "Midi";
 
-static uint8_t stack[STACK_SIZE];
-static int head = 0;  // oldest note
-static int tail = 0;  // next free slot
-static int stack_cnt = 0;
+static uint8_t s_MonoStack[MONO_STACK_SIZE];
+static uint8_t s_VoiceNote[NUM_DSP][NUM_VOICES];
+static u32 s_VoiceAge[NUM_DSP][NUM_VOICES];
+static u32 s_NextVoiceAge = 1;
+static int s_MonoHead = 0;  // oldest note
+static int s_MonoTail = 0;  // next free slot
+static int s_MonoCount = 0;
 u8 midi_channel = 0;
 u8 cc_map[NUM_CC_MAP] = {0};
 int mode_learn_current_cc = 0;
@@ -98,11 +103,21 @@ static void apply_mapped_cc(int internal_cc, u8 midi_val)
     set_param_vals(cc->p, val);
 }
 
-static void clear_note_stack(void)
+static void clear_mono_stack(void)
 {
-    head = 0;
-    tail = 0;
-    stack_cnt = 0;
+    s_MonoHead = 0;
+    s_MonoTail = 0;
+    s_MonoCount = 0;
+}
+
+static void clear_voice_state(void)
+{
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            s_VoiceNote[dsp][voice] = VOICE_NOTE_NONE;
+            s_VoiceAge[dsp][voice] = 0;
+        }
+    }
 }
 
 static void release_all_voices(void)
@@ -114,6 +129,7 @@ static void release_all_voices(void)
             }
         }
     }
+    clear_voice_state();
 }
 
 static void preload_mono_pitches(uint8_t note)
@@ -131,13 +147,72 @@ static void preload_mono_pitches(uint8_t note)
 
 static bool peek_newest_note(uint8_t *out)
 {
-    if (stack_cnt == 0 || out == 0) {
+    if (s_MonoCount == 0 || out == 0) {
         return false;
     }
 
-    int newest = (tail - 1 + STACK_SIZE) % STACK_SIZE;
-    *out = stack[newest];
+    int newest = (s_MonoTail - 1 + MONO_STACK_SIZE) % MONO_STACK_SIZE;
+    *out = s_MonoStack[newest];
     return true;
+}
+
+static bool voice_is_active(u8 dsp, u8 voice)
+{
+    return Signals[dsp].gate[voice] != 0 && *(Signals[dsp].gate[voice]) != 0;
+}
+
+static bool voice_is_available(u8 dsp, u8 voice)
+{
+    if (Signals[dsp].gate[voice] == 0) {
+        return false;
+    }
+    if (*(Signals[dsp].gate[voice]) != 0) {
+        return false;
+    }
+    if (Signals[dsp].env_amp[voice] == 0) {
+        return true;
+    }
+
+    return *(Signals[dsp].env_amp[voice]) <= VOICE_IDLE_ENV_THRESHOLD;
+}
+
+static bool find_active_voice_for_note(uint8_t note, u8 *dsp_out, u8 *voice_out)
+{
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            if (s_VoiceNote[dsp][voice] == note && voice_is_active(dsp, voice)) {
+                if (dsp_out != 0) {
+                    *dsp_out = dsp;
+                }
+                if (voice_out != 0) {
+                    *voice_out = voice;
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+static void assign_poly_voice(u8 dsp, u8 voice, u8 note)
+{
+    s_VoiceNote[dsp][voice] = note;
+    s_VoiceAge[dsp][voice] = s_NextVoiceAge++;
+    if (Signals[dsp].pitch[voice] != 0) {
+        *(Signals[dsp].pitch[voice]) = note;
+    }
+    if (Signals[dsp].gate[voice] != 0) {
+        *(Signals[dsp].gate[voice]) = 1;
+    }
+}
+
+static void release_poly_voice(u8 dsp, u8 voice)
+{
+    s_VoiceNote[dsp][voice] = VOICE_NOTE_NONE;
+    if (Signals[dsp].gate[voice] != 0) {
+        *(Signals[dsp].gate[voice]) = 0;
+    }
 }
 
 static void assign_mono_note(uint8_t note)
@@ -156,7 +231,7 @@ static void assign_mono_note(uint8_t note)
 void midi_set_mono_mode(bool enabled)
 {
     mono_mode = enabled;
-    clear_note_stack();
+    clear_mono_stack();
     release_all_voices();
     if (enabled) {
         preload_mono_pitches(60);
@@ -195,135 +270,139 @@ void midi_select_learn_target(int button, bool alt)
     }
 }
 
-static void remove_note_from_stack(uint8_t note) {
-    if (stack_cnt == 0)
+static void mono_remove_note(uint8_t note)
+{
+    if (s_MonoCount == 0) {
         return;
-
-    int idx = head;
-    int removed = 0;
-
-    for (int i = 0; i < stack_cnt; i++) {
-        if (stack[idx] == note) {
-            // skip this note, effectively removing it
-            removed++;
-        } else if (removed > 0) {
-            // shift note back by 'removed' slots
-            int target = (idx - removed + STACK_SIZE) % STACK_SIZE;
-            stack[target] = stack[idx];
-        }
-        idx = (idx + 1) % STACK_SIZE;
     }
 
-    stack_cnt -= removed;
-    tail = (head + stack_cnt) % STACK_SIZE;
+    int remove_offset = -1;
+    for (int i = s_MonoCount - 1; i >= 0; i--) {
+        int idx = (s_MonoHead + i) % MONO_STACK_SIZE;
+        if (s_MonoStack[idx] == note) {
+            remove_offset = i;
+            break;
+        }
+    }
+
+    if (remove_offset < 0) {
+        return;
+    }
+
+    for (int i = remove_offset; i < s_MonoCount - 1; i++) {
+        int src = (s_MonoHead + i + 1) % MONO_STACK_SIZE;
+        int dst = (s_MonoHead + i) % MONO_STACK_SIZE;
+        s_MonoStack[dst] = s_MonoStack[src];
+    }
+
+    s_MonoCount--;
+    s_MonoTail = (s_MonoHead + s_MonoCount) % MONO_STACK_SIZE;
 }
 
-// push a note, ensuring no duplicates
-void push_note(uint8_t note) {
-    remove_note_from_stack(note);
+static void mono_push_note(uint8_t note) {
+    s_MonoStack[s_MonoTail] = note;
+    s_MonoTail = (s_MonoTail + 1) % MONO_STACK_SIZE;
 
-    stack[tail] = note;
-    tail = (tail + 1) % STACK_SIZE;
-
-    if (stack_cnt < STACK_SIZE) {
-        stack_cnt++;
+    if (s_MonoCount < MONO_STACK_SIZE) {
+        s_MonoCount++;
     } else {
         // buffer full, move head forward (overwrite oldest note)
-        head = (head + 1) % STACK_SIZE;
+        s_MonoHead = (s_MonoHead + 1) % MONO_STACK_SIZE;
     }
 }
 
-bool steal_note(uint8_t *out) {
-    if (stack_cnt == 0){
-        return false;
+static bool find_oldest_voice(bool prefer_released, u8 *dsp_out, u8 *voice_out)
+{
+    bool found = false;
+    u32 best_age = 0;
+
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            if (voice_is_available(dsp, voice)) {
+                continue;
+            }
+
+            bool released = !voice_is_active(dsp, voice);
+            if (released != prefer_released) {
+                continue;
+            }
+            if (s_VoiceAge[dsp][voice] == 0) {
+                continue;
+            }
+
+            if (!found || s_VoiceAge[dsp][voice] < best_age) {
+                found = true;
+                best_age = s_VoiceAge[dsp][voice];
+                if (dsp_out != 0) {
+                    *dsp_out = dsp;
+                }
+                if (voice_out != 0) {
+                    *voice_out = voice;
+                }
+            }
+        }
     }
-    *out = stack[head];
-    head = (head + 1) % STACK_SIZE;
-    stack_cnt--;
-    return true;
+
+    return found;
 }
 
 void handle_note_on(u8 note){
     if (mono_mode) {
-        push_note(note);
+        mono_push_note(note);
         assign_mono_note(note);
         return;
     }
 
-    // check for retrigger
-    for(u8 dsp=0; dsp<NUM_DSP; dsp++)
-    {
-        for(u8 voice=0; voice<NUM_VOICES; voice++){
-            if(*(Signals[dsp].pitch[voice]) == note){
-                // retriger it
-                push_note(note);
-                *(Signals[dsp].gate[voice]) = 1;
+    u8 dsp = 0;
+    u8 voice = 0;
+    if (find_active_voice_for_note(note, &dsp, &voice)) {
+        s_VoiceAge[dsp][voice] = s_NextVoiceAge++;
+        if (Signals[dsp].gate[voice] != 0) {
+            *(Signals[dsp].gate[voice]) = 1;
+        }
+        return;
+    }
+
+    // allocate to any free voice
+    for(dsp=0; dsp<NUM_DSP; dsp++){
+        for(voice=0; voice<NUM_VOICES; voice++){
+            if(voice_is_available(dsp, voice)){
+                assign_poly_voice(dsp, voice, note);
                 return;
             }
         }
     }
-
-    // allocate to any free voice
-    for(u8 dsp=0; dsp<NUM_DSP; dsp++){
-        for(u8 voice=0; voice<NUM_VOICES; voice++){
-            if(*(Signals[dsp].gate[voice]) == 0){
-                // also check that the amp envelope is done
-                if(*(Signals[dsp].env_amp[voice]) == 0){
-                    push_note(note);
-                    *(Signals[dsp].gate[voice]) = 1;
-                    *(Signals[dsp].pitch[voice]) = note;
-                    // CLogger::Get ()->Write (FromMidi, LogNotice, "alocate to dsp %d, voice %d", dsp, voice);
-                    return;
-                }
-            }
-        }
-    }
     
-    // steal a voice
-    u8 stolen = 0xFF;
-    bool done = false;
-    for(int i=0; i<stack_cnt; i++){
-        steal_note(&stolen); // pop the oldest one in the ring buffer
-        for(u8 dsp=0; dsp<NUM_DSP; dsp++){
-            for(u8 voice=0; voice<NUM_VOICES; voice++){
-                if(*(Signals[dsp].pitch[voice]) == stolen){
-                    CLogger::Get ()->Write (FromMidi, LogNotice, "stole note %d", stolen);
-                    *(Signals[dsp].env_amp[voice]) = 0; // reset the env
-                    *(Signals[dsp].pitch[voice]) = note; // the new note
-                    *(Signals[dsp].gate[voice]) = 1; // turn it on
-                    push_note(note);
-                    return;
-                }
-            }
-        }
-        CLogger::Get ()->Write (FromMidi, LogNotice, "failed to steal %d", stolen);
+    // steal the oldest released voice first, otherwise the oldest active voice
+    if (!find_oldest_voice(true, &dsp, &voice) &&
+        !find_oldest_voice(false, &dsp, &voice)) {
+        CLogger::Get ()->Write (FromMidi, LogNotice, "failed to find any voice to steal");
+        return;
     }
-    CLogger::Get ()->Write (FromMidi, LogNotice, "failed to steal any notes");
+
+    CLogger::Get ()->Write (FromMidi, LogNotice, "stole voice dsp=%u voice=%u note=%u", dsp, voice, s_VoiceNote[dsp][voice]);
+    if (Signals[dsp].env_amp[voice] != 0) {
+        *(Signals[dsp].env_amp[voice]) = 0;
+    }
+    assign_poly_voice(dsp, voice, note);
 }
 
 void handle_note_off(u8 note){
-    remove_note_from_stack(note);
-
     if (mono_mode) {
+        mono_remove_note(note);
         uint8_t latest = 0;
         if (peek_newest_note(&latest)) {
             assign_mono_note(latest);
         } else {
             release_all_voices();
-            preload_mono_pitches(60);
         }
         return;
     }
 
-    for(u8 dsp=0; dsp<NUM_DSP; dsp++)
-    {
-        for(u8 voice=0; voice<NUM_VOICES; voice++){
-            if(*(Signals[dsp].pitch[voice]) == note){
-                // remove_note(note);
-                *(Signals[dsp].gate[voice]) = 0;
-                return;
-            }
-        }
+    u8 dsp = 0;
+    u8 voice = 0;
+    if (find_active_voice_for_note(note, &dsp, &voice)) {
+        release_poly_voice(dsp, voice);
     }
 }
 
