@@ -22,6 +22,7 @@
 #define BUTTON_NUM_MONO 2
 #define BUTTON_NUM_LEARN 5
 #define BUTTON_NUM_MIDI_CHANNEL 11
+#define BUTTON_NUM_CHORUS_MODE 26
 #define BUTTON_NUM_SAVE 12
 #define BUTTON_NUM_LOAD 24
 
@@ -50,6 +51,7 @@ void handle_encoder(bool up, u64 now);
 bool alt_held(void);
 int get_matrix_cc_for_button(int num);
 bool midi_channel_adjust_held(void);
+bool chorus_mode_display_held(void);
 void set_param_selected(int button, bool is_cc);
 
 #endif

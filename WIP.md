@@ -1,7 +1,9 @@
 TODO:
 - improve colors
 - more reverb controls? difuse?
+- - adding size causes crashes?
 - display chorus modes
+- stuck notes
 
 LAST : 
 - poly mod
@@ -19,6 +21,6 @@ LAST :
 
 WIP :
 - json file format
-- osc2 needs an LFO in LO mode
+- optimize oscillator code, hopefully free up processor during FM
 
 NEXT :

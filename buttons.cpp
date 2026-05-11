@@ -60,6 +60,11 @@ bool midi_channel_adjust_held(void)
     return alt_held() && button_pushes[BUTTON_NUM_MIDI_CHANNEL] != 0;
 }
 
+bool chorus_mode_display_held(void)
+{
+    return alt_held() && button_pushes[BUTTON_NUM_CHORUS_MODE] != 0;
+}
+
 const int param_matrix[4][5] = {
     {26,27,28,29,30},
     {31,32,33,34,35},
@@ -106,21 +111,6 @@ static bool handle_mode_switch_chord(int num)
     default:
         return false;
     }
-}
-
-static int get_cc_num_from_pointer(float *p)
-{
-    if (p == 0) {
-        return -1;
-    }
-
-    for (int i = 0; i < NUM_CC; i++) {
-        if (CCs[i].p[0] == p) {
-            return i;
-        }
-    }
-
-    return -1;
 }
 
 void set_param_selected(int button, bool is_cc){

@@ -150,6 +150,15 @@ static bool get_led_bar_source(float **val_p, float *min, float *max, int *cc_nu
         return false;
     }
 
+    if (chorus_mode_display_held()) {
+        struct AltSel *alt_sel = &AltSels[BUTTON_NUM_CHORUS_MODE];
+        if (alt_sel->p[0] != 0) {
+            led_bar_signed_int_value = (int) (*(alt_sel->p[0]));
+            led_bar_cc_num = -1;
+            return false;
+        }
+    }
+
     if (param_selected.button == -1) {
         return false;
     }
@@ -464,7 +473,7 @@ void render_leds(void){
     set_led(30, matrix[3][2]); // OS2->VCF
 
     update_led_bar();
-    if (midi_channel_adjust_held() || uses_signed_int_led_bar(led_bar_cc_num)) {
+    if (midi_channel_adjust_held() || chorus_mode_display_held() || uses_signed_int_led_bar(led_bar_cc_num)) {
         render_signed_int_led_bar();
     } else {
         render_linear_led_bar();
