@@ -145,6 +145,10 @@ boolean CKernel::Initialize (void)
 
 void CKernel::MIDIPacketHandler (unsigned nCable, u8 *pPacket, unsigned nLength)
 {
+	if (nLength > 0) {
+		uart_write(pPacket, nLength);
+	}
+
 	for(unsigned i=0; i< nLength; i++){
 		handle_midi_byte(pPacket[i]);
 	}
@@ -192,6 +196,7 @@ TShutdownMode CKernel::Run (void)
 		midi_config_service(m_Timer.GetClockTicks64());
 		// render_leds();
 		read_uart();
+		uart_service();
 		assert (m_pUSB);
 		if (m_pUSB->UpdatePlugAndPlay ()){
 			m_pMIDIDevice = (CUSBMIDIDevice *) CDeviceNameService::Get ()->GetDevice ("umidi1", FALSE);
