@@ -82,20 +82,30 @@ u32 tos24(s32 in){
     return in;
 }
 
-u32 ftos24(float in){
-    float scaled = in * 8388608.0f; // 2^23
-    int32_t q23 = (int32_t)scaled;
+// u32 ftos24(float in){
+//     float scaled = in * 8388608.0f; // 2^23
+//     int32_t q23 = (int32_t)scaled;
 
-    // 2. Saturate
-    if (q23 >  0x7FFFFF) q23 =  0x7FFFFF;
-    if (q23 < -0x7FFFFF) q23 = -0x7FFFFF;
+//     // 2. Saturate
+//     if (q23 >  0x7FFFFF) q23 =  0x7FFFFF;
+//     if (q23 < -0x7FFFFF) q23 = -0x7FFFFF;
 
-    bool neg = q23 < 0;
-    q23 &= 0x7FFFFF;
-    if(neg){
-        q23 |= 0x800000;
-    }
-    return (uint32_t)q23;
+//     bool neg = q23 < 0;
+//     q23 &= 0x7FFFFF;
+//     if(neg){
+//         q23 |= 0x800000;
+//     }
+//     return (uint32_t)q23;
+// }
+
+static inline u32 ftos24(float in)
+{
+    int32_t q = (int32_t)(in * 8388608.0f);
+
+    if (q >  0x7FFFFF) q =  0x7FFFFF;
+    if (q < -0x800000) q = -0x800000;
+
+    return (u32)(q & 0xFFFFFF);
 }
 
 #if APP_ENABLE_RUNTIME_DEBUG_LOGS

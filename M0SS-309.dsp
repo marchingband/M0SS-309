@@ -107,6 +107,7 @@ p_os2_vcf = pMatrixGos2(hslider("p.os2.vcf[style:knob][midi:61]", 0, 0, 1, 0.001
 poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
 
 transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1) : si.smoo;
+glide = hslider("glide[style:knob][alt:10][midi:64]", 0.001, 0, 0.999, 0.001) : si.smoo;
 
 // FX start at [midi:70]
 
@@ -126,8 +127,10 @@ with {
     noise   = no.noise;
     gate    = gateG(button("gate_%x"));
 
-    env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
-    env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
+    env_amp = en.adsr(a,d,s,r,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
+    env     = en.adsr(a_f,d_f,s_f,r_f,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
+    // env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
+    // env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
 
     // sum mod matrix and poly mod matrix
     _lfo_os1 = lfo_os1 + (p_lfo_os1 * poly_mod);
@@ -158,7 +161,7 @@ with {
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
     pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
 
-    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz;
+    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz : si.smooth(ba.tau2pole(glide));
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);
     
     os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn); // tune and detune ratio
