@@ -22,14 +22,9 @@ variable_osc = environment {
         out = saw_ + (tri - saw) * t_amt;
     };
 
-    hs_fm_osc_pair(_m_freq, s_freq, _m_pw, _s_pw, m_ws, s_ws, sync, fm, pw_fm) = (m_next, s_next, m_high, s_high, m_phase, s_phase, m_prev_pw, s_prev_pw, m_out, s_out) : !,!,!,!,!,!,!,!,_,_ : *(2),*(2) : -(1),-(1)
+    hs_fm_osc_pair_fb(m_freq, s_freq, _m_pw, _s_pw, m_ws, s_ws, sync, fm, pw_fm) = (m_next, s_next, m_high, s_high, m_phase, s_phase, m_prev_pw, s_prev_pw, m_out, s_out) : !,!,!,!,!,!,!,!,_,_ : *(2),*(2) : -(1),-(1)
     letrec{
-        'm_prev_pw = m_pw
-        with{
-            m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
-            m_pw_raw = _m_pw + (s_out * pw_fm);
-            m_pw = ba.if(m_step >= 0.25, 0.5, max(m_step * 2.0, min(1.0 - 2.0 * m_step, m_pw_raw)));
-        };
+        'm_prev_pw = m_pw;
         's_prev_pw = s_pw;
     // SLAVE.
         's_out = 
@@ -57,7 +52,6 @@ variable_osc = environment {
                 0
             )
             with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
                 m_phase_ = m_phase + m_step;
                 reset = (m_phase_ >= 1.0) + sync == 2;
                 m_phase__ = fmod(m_phase_, 1.0);
@@ -93,7 +87,6 @@ variable_osc = environment {
                 0
             )
             with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
                 m_phase_ = m_phase + m_step;
                 reset = (m_phase_ >= 1.0) + sync == 2;
                 m_phase__ = fmod(m_phase_, 1.0);
@@ -112,16 +105,12 @@ variable_osc = environment {
                 fmod(s_phase + s_step, 1.0)
             )
             with{
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
                 m_phase_ = m_phase + m_step;
                 reset = (m_phase_ >= 1.0) + sync == 2;
                 m_phase__ = fmod(m_phase_, 1.0);
                 reset_time = m_phase__ / m_step;
             };
-        'm_phase = fmod(m_phase + m_step, 1.0)
-            with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
-            };
+        'm_phase = fmod(m_phase + m_step, 1.0);
         's_high = 
             ba.if(
                 (reset + (s_high + (s_phase_ >= 1.0) == 2) + ((s_high == 0) + (s_phase__ < s_pw) == 2)) > 0, 
@@ -129,7 +118,6 @@ variable_osc = environment {
                 1
             )
             with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
                 m_phase_ = m_phase + m_step;
                 reset = (m_phase_ >= 1.0) + sync == 2;
                 s_phase_ = s_phase + s_step;
@@ -152,11 +140,6 @@ variable_osc = environment {
                 )
             )
             with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
-                m_pw_raw = _m_pw + (s_out * pw_fm);
-                m_pw = ba.if(m_step >= 0.25, 0.5, max(m_step * 2.0, min(1.0 - 2.0 * m_step, m_pw_raw)));
-                m_slope_up = 1.0 / (m_pw);
-                m_slope_down = 1.0 / (1.0 - m_pw);
                 m_phase_ = m_phase + m_step;
                 m_phase__ = fmod(m_phase_, 1.0);
                 m_triangle_step = (m_slope_up + m_slope_down) * m_step * m_tri_amount;
@@ -177,11 +160,6 @@ variable_osc = environment {
                 )
             )
             with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
-                m_pw_raw = _m_pw + (s_out * pw_fm);
-                m_pw = ba.if(m_step >= 0.25, 0.5, max(m_step * 2.0, min(1.0 - 2.0 * m_step, m_pw_raw)));
-                m_slope_up = 1.0 / (m_pw);
-                m_slope_down = 1.0 / (1.0 - m_pw);
                 m_phase_ = m_phase + m_step;
                 m_phase__ = fmod(m_phase_, 1.0);
                 m_triangle_step = (m_slope_up + m_slope_down) * m_step * m_tri_amount;
@@ -193,9 +171,6 @@ variable_osc = environment {
                 1
             )
             with {
-                m_step = max(0, _m_freq + (s_freq * s_out * fm)) / ma.SR;
-                m_pw_raw = _m_pw + (s_out * pw_fm);
-                m_pw = ba.if(m_step >= 0.25, 0.5, max(m_step * 2.0, min(1.0 - 2.0 * m_step, m_pw_raw)));
                 m_phase_ = m_phase + m_step;
                 m_phase__ = fmod(m_phase_, 1.0);
             };
@@ -207,8 +182,183 @@ variable_osc = environment {
         s_slope_up = 1.0 / (s_pw);
         s_slope_down = 1.0 / (1.0 - s_pw);
         s_pw = ba.if(s_step >= 0.25, 0.5, max(s_step * 2.0, min(1.0 - 2.0 * s_step, _s_pw)));
+
+        m_step = m_freq / ma.SR;
         m_sq_amount = max(m_ws - 0.5, 0.0) * 2.0;
         m_tri_amount = max(1.0 - m_ws * 2.0, 0.0);
+        m_slope_up = 1.0 / (m_pw);
+        m_slope_down = 1.0 / (1.0 - m_pw);
+        m_pw = ba.if(m_step >= 0.25, 0.5, max(m_step * 2.0, min(1.0 - 2.0 * m_step, _m_pw)));
+    };
+
+
+    hs_fm_osc_pair(m_freq, s_freq, _m_pw, _s_pw, m_ws, s_ws, sync, fm, pw_fm) = (m_next, s_next, m_high, s_high, m_phase, s_phase, m_prev_pw, s_prev_pw, m_out, s_out) : !,!,!,!,!,!,!,!,_,_ : *(2),*(2) : -(1),-(1)
+    letrec{
+        'm_prev_pw = m_pw;
+        's_prev_pw = s_pw;
+    // SLAVE.
+        's_out = 
+            s_next 
+            - ba.if(
+                reset,
+                var(fmod(slave_phase_at_reset, 1.0), s_pw, s_slope_up, s_slope_down, s_tri_amount, s_sq_amount) * blep_this(reset_time),
+                0
+            )
+            + ba.if(
+                (transition_during_reset + (reset == 0)) > 0,
+                ba.if(
+                    s_high,
+                    ba.if(
+                        s_phase_ >= 1.0,
+                        (s_triangle_step * i_blep_this(s_phase__ / s_step)) - ((1.0 - s_tri_amount) * blep_this(s_phase__ / s_step)),
+                        0
+                    ),
+                    ba.if(
+                        s_phase__ >= s_pw,
+                        (s_sq_amount * blep_this((s_phase__ - s_pw) / (s_prev_pw - s_pw + s_step))) - (s_triangle_step * i_blep_this((s_phase__ - s_pw) / (s_prev_pw - s_pw + s_step))),
+                        0
+                    )
+                ),
+                0
+            )
+            with {
+                m_phase_ = m_phase + m_step;
+                reset = (m_phase_ >= 1.0) + sync == 2;
+                m_phase__ = fmod(m_phase_, 1.0);
+                reset_time = m_phase__ / m_step;
+                slave_phase_at_reset = s_phase + (1.0 - reset_time) * s_step;
+                transition_during_reset = ((slave_phase_at_reset >= 1.0) + ((s_high == 0) + (slave_phase_at_reset >= s_pw) == 2)) > 0;
+                s_phase_ = s_phase + s_step;
+                s_phase__ = fmod(s_phase_, 1.0);
+                s_triangle_step = (s_slope_up + s_slope_down) * s_step * s_tri_amount;
+            };
+        's_next = 
+            var(s_phase___, s_pw, s_slope_up, s_slope_down, s_tri_amount, s_sq_amount) 
+            - ba.if(
+                reset,
+                var(fmod(slave_phase_at_reset, 1.0), s_pw, s_slope_up, s_slope_down, s_tri_amount, s_sq_amount) * blep_next(reset_time),
+                0
+            )
+            + ba.if(
+                (transition_during_reset + (reset == 0)) > 0,
+                ba.if(
+                    s_high,
+                    ba.if(
+                        s_phase_ >= 1.0,
+                        (s_triangle_step * i_blep_next(s_phase__ / s_step)) - ((1.0 - s_tri_amount) * blep_next(s_phase__ / s_step)),
+                        0
+                    ),
+                    ba.if(
+                        s_phase__ >= s_pw,
+                        (s_sq_amount * blep_next((s_phase__ - s_pw) / (s_prev_pw - s_pw + s_step))) - (s_triangle_step * i_blep_next((s_phase__ - s_pw) / (s_prev_pw - s_pw + s_step))),
+                        0
+                    )
+                ),
+                0
+            )
+            with {
+                m_phase_ = m_phase + m_step;
+                reset = (m_phase_ >= 1.0) + sync == 2;
+                m_phase__ = fmod(m_phase_, 1.0);
+                reset_time = m_phase__ / m_step;
+                slave_phase_at_reset = s_phase + (1.0 - reset_time) * s_step;
+                transition_during_reset = (slave_phase_at_reset >= 1.0) + ((s_high == 0) + (slave_phase_at_reset >= s_pw) == 2) > 0;
+                s_phase_ = s_phase + s_step;
+                s_phase__ = fmod(s_phase_, 1.0);
+                s_phase___ = ba.if(reset, reset_time * s_step, s_phase__);
+                s_triangle_step = (s_slope_up + s_slope_down) * s_step * s_tri_amount;
+            };
+        's_phase = 
+            ba.if(
+                reset,
+                reset_time * s_step,
+                fmod(s_phase + s_step, 1.0)
+            )
+            with{
+                m_phase_ = m_phase + m_step;
+                reset = (m_phase_ >= 1.0) + sync == 2;
+                m_phase__ = fmod(m_phase_, 1.0);
+                reset_time = m_phase__ / m_step;
+            };
+        'm_phase = fmod(m_phase + m_step, 1.0);
+        's_high = 
+            ba.if(
+                (reset + (s_high + (s_phase_ >= 1.0) == 2) + ((s_high == 0) + (s_phase__ < s_pw) == 2)) > 0, 
+                0,
+                1
+            )
+            with {
+                m_phase_ = m_phase + m_step;
+                reset = (m_phase_ >= 1.0) + sync == 2;
+                s_phase_ = s_phase + s_step;
+                s_phase__ = fmod(s_phase_, 1.0);
+            };
+    // MASTER.
+        'm_out = 
+            m_next 
+            + ba.if(
+                m_high,
+                ba.if(
+                    m_phase_ >= 1.0,
+                    (m_triangle_step * i_blep_this(m_phase__ / m_step)) - ((1.0 - m_tri_amount) * blep_this(m_phase__ / m_step)),
+                    0
+                ),
+                ba.if(
+                    m_phase__ >= m_pw,
+                    (m_sq_amount * blep_this((m_phase__ - m_pw) / (m_prev_pw - m_pw + m_step))) - (m_triangle_step * i_blep_this((m_phase__ - m_pw) / (m_prev_pw - m_pw + m_step))),
+                    0
+                )
+            )
+            with {
+                m_phase_ = m_phase + m_step;
+                m_phase__ = fmod(m_phase_, 1.0);
+                m_triangle_step = (m_slope_up + m_slope_down) * m_step * m_tri_amount;
+            };
+        'm_next = 
+            var(m_phase__, m_pw, m_slope_up, m_slope_down, m_tri_amount, m_sq_amount) 
+            + ba.if(
+                m_high,
+                ba.if(
+                    m_phase_ >= 1.0,
+                    (m_triangle_step * i_blep_next(m_phase__ / m_step)) - ((1.0 - m_tri_amount) * blep_next(m_phase__ / m_step)),
+                    0
+                ),
+                ba.if(
+                    m_phase__ >= m_pw,
+                    (m_sq_amount * blep_next((m_phase__ - m_pw) / (m_prev_pw - m_pw + m_step))) - (m_triangle_step * i_blep_next((m_phase__ - m_pw) / (m_prev_pw - m_pw + m_step))),
+                    0
+                )
+            )
+            with {
+                m_phase_ = m_phase + m_step;
+                m_phase__ = fmod(m_phase_, 1.0);
+                m_triangle_step = (m_slope_up + m_slope_down) * m_step * m_tri_amount;
+            };
+        'm_high = 
+            ba.if(
+                (m_high + (m_phase_ >= 1.0) == 2) + ((m_high == 0) + (m_phase__ < m_pw) == 2) > 0, 
+                0,
+                1
+            )
+            with {
+                m_phase_ = m_phase + m_step;
+                m_phase__ = fmod(m_phase_, 1.0);
+            };
+    }
+    with {
+        s_step = s_freq / ma.SR;
+        s_sq_amount = max(s_ws - 0.5, 0.0) * 2.0;
+        s_tri_amount = max(1.0 - s_ws * 2.0, 0.0);
+        s_slope_up = 1.0 / (s_pw);
+        s_slope_down = 1.0 / (1.0 - s_pw);
+        s_pw = ba.if(s_step >= 0.25, 0.5, max(s_step * 2.0, min(1.0 - 2.0 * s_step, _s_pw)));
+
+        m_step = m_freq / ma.SR;
+        m_sq_amount = max(m_ws - 0.5, 0.0) * 2.0;
+        m_tri_amount = max(1.0 - m_ws * 2.0, 0.0);
+        m_slope_up = 1.0 / (m_pw);
+        m_slope_down = 1.0 / (1.0 - m_pw);
+        m_pw = ba.if(m_step >= 0.25, 0.5, max(m_step * 2.0, min(1.0 - 2.0 * m_step, _m_pw)));
     };
 
     hard_sync_variable_slave(m_freq, s_freq, _pw, ws, sync) = (next, high, m_phase, s_phase, prev_pw, out) : !,!,!,!,!,_ : _*2-1

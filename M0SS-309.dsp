@@ -187,7 +187,19 @@ with {
     ws_vosc_1 = 0, 1 : ba.selectn(2, os1_waveform);
     ws_vosc_2 = 0, 1, 0 : ba.selectn(3, os2_waveform);
 
-    osc_pair = variable_osc.hs_fm_osc_pair(os1_pitch_base, os2_pitch, pw_vosc_1, pw_vosc_2, ws_vosc_1, ws_vosc_2, sync, _os2_os1, _os2_pw1);
+    fb(pri,sec) = m_freq, s_freq, m_pw, s_pw, m_ws, s_ws, sync, fm, pw_fm
+    with {
+        m_freq = max(0, os1_pitch_base + (s_freq * sec * fm));
+        s_freq = os2_pitch;
+        m_pw = pw_vosc_1 + (pw_fm * sec);
+        s_pw = pw_vosc_2;
+        m_ws = ws_vosc_1;
+        s_ws = ws_vosc_2;
+        fm = _os2_os1;
+        pw_fm = _os2_pw1;
+    };
+    osc_pair = variable_osc.hs_fm_osc_pair_fb ~ fb;
+    // osc_pair = variable_osc.hs_fm_osc_pair(os1_pitch_base, os2_pitch, pw_vosc_1, pw_vosc_2, ws_vosc_1, ws_vosc_2, sync, _os2_os1, _os2_pw1);
     os1 = osc_pair : (_,!);
     os2 = osc_pair : (!,_);
 
