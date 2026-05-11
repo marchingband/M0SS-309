@@ -65,9 +65,6 @@ static struct Pixel LightRed = {
 };
 
 static float led_bar[11] = {0};
-static float *led_bar_val_p = nullptr;
-static float led_bar_min = 0;
-static float led_bar_max = 0;
 static int led_bar_signed_int_value = 0;
 static int led_bar_cc_num = -1;
 
@@ -130,44 +127,83 @@ static bool uses_signed_int_led_bar(int cc_num)
     }
 }
 
-void set_led_bar(float *val, float min, float max){
-    led_bar_cc_num = -1;
-    led_bar_val_p = val;
-    led_bar_min = min;
-    led_bar_max = max;
+static int get_cc_num_from_pointer(float *p)
+{
+    if (p == 0) {
+        return -1;
+    }
+
+    for (int i = 0; i < NUM_CC; i++) {
+        if (CCs[i].p[0] == p) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
-void set_led_bar_cc(float *val, float min, float max, int cc_num)
+static bool get_led_bar_source(float **val_p, float *min, float *max, int *cc_num)
 {
-    led_bar_val_p = val;
-    led_bar_min = min;
-    led_bar_max = max;
-    led_bar_cc_num = cc_num;
-}
+    if (midi_channel_adjust_held()) {
+        led_bar_signed_int_value = (int) midi_channel;
+        led_bar_cc_num = -1;
+        return false;
+    }
 
-void set_led_bar_signed_int_value(int value)
-{
-    led_bar_val_p = 0;
-    led_bar_signed_int_value = value;
-    led_bar_cc_num = -1;
+    if (param_selected.button == -1) {
+        return false;
+    }
+
+    if (param_selected.cc) {
+        struct CC *cc = &CCs[param_selected.button];
+        if (cc->p[0] == 0) {
+            return false;
+        }
+        *val_p = cc->p[0];
+        *min = cc->min;
+        *max = cc->max;
+        *cc_num = param_selected.button;
+        return true;
+    }
+
+    if (param_selected.alt) {
+        struct Alt *alt = &Alts[param_selected.button];
+        if (alt->p[0] == 0) {
+            return false;
+        }
+        *val_p = alt->p[0];
+        *min = alt->min;
+        *max = alt->max;
+        *cc_num = get_cc_num_from_pointer(alt->p[0]);
+        return true;
+    }
+
+    struct Mod *mod = &Mods[param_selected.button];
+    if (mod->p[0] == 0) {
+        return false;
+    }
+    *val_p = mod->p[0];
+    *min = mod->min;
+    *max = mod->max;
+    *cc_num = get_cc_num_from_pointer(mod->p[0]);
+    return true;
 }
 
 void update_led_bar(void){
-    if (midi_channel_adjust_held()) {
-        led_bar_signed_int_value = (int) midi_channel;
+    float *led_bar_val_p = 0;
+    float led_bar_min = 0;
+    float led_bar_max = 0;
+    led_bar_cc_num = -1;
+
+    if (!get_led_bar_source(&led_bar_val_p, &led_bar_min, &led_bar_max, &led_bar_cc_num)) {
         return;
     }
 
     if (uses_signed_int_led_bar(led_bar_cc_num)) {
-        if (led_bar_val_p != nullptr) {
-            led_bar_signed_int_value = (int) (*led_bar_val_p);
-        }
+        led_bar_signed_int_value = (int) (*led_bar_val_p);
         return;
     }
 
-    if(led_bar_val_p == nullptr){
-        return;
-    }
     float val = *led_bar_val_p;
     float max = led_bar_max;
 

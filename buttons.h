@@ -42,11 +42,14 @@ struct Param {
     bool cc;
 };
 
+extern struct Param param_selected;
+
 void scan_buttons(CTimer *timer);
 void process_buttons(CTimer *timer);
 void handle_encoder(bool up, u64 now);
 bool alt_held(void);
 int get_matrix_cc_for_button(int num);
 bool midi_channel_adjust_held(void);
+void set_param_selected(int button, bool is_cc);
 
 #endif

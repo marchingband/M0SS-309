@@ -129,16 +129,6 @@ void set_param_selected(int button, bool is_cc){
     param_selected.cc = is_cc;
 }
 
-static void set_param_led_bar(float *p, float min, float max, int cc_num)
-{
-    set_led_bar_cc(p, min, max, cc_num);
-}
-
-static void set_param_led_bar_for_pointer(float *p, float min, float max)
-{
-    set_param_led_bar(p, min, max, get_cc_num_from_pointer(p));
-}
-
 static float get_encoder_step(float step, float mul, int click_multiplier)
 {
     if (step == 1.0f) {
@@ -193,7 +183,6 @@ void handle_encoder(bool up, u64 now){
             float next = up ? cur + step : cur - step;
             float clamped = next > alt->max ? alt->max : next < alt->min ? alt->min : next;
             set_param_vals(alt->p, clamped);
-            set_param_led_bar_for_pointer(alt->p[0], alt->min, alt->max);
         }
     } else if(param_selected.cc) {
         struct CC *cc = &CCs[param_selected.button];
@@ -206,7 +195,6 @@ void handle_encoder(bool up, u64 now){
             float next = up ? cur + step : cur - step;
             float clamped = next > cc->max ? cc->max : next < cc->min ? cc->min : next;
             set_param_vals(cc->p, clamped);
-            set_param_led_bar(cc->p[0], cc->min, cc->max, param_selected.button);
         }
     } else {
         struct Mod *mod = &Mods[param_selected.button];
@@ -219,7 +207,6 @@ void handle_encoder(bool up, u64 now){
             float next = up ? cur + step : cur - step;
             float clamped = next > mod->max ? mod->max : next < mod->min ? mod->min : next;
             set_param_vals(mod->p, clamped);
-            set_param_led_bar_for_pointer(mod->p[0], mod->min, mod->max);
         }
     }
 }
@@ -227,7 +214,6 @@ void handle_encoder(bool up, u64 now){
 static void matrix_pick(int num){
     struct CC cc = CCs[num];
     if(cc.p[0] !=0){
-        set_param_led_bar(cc.p[0], cc.min, cc.max, num);
         set_param_selected(num, true);
     }
 }
@@ -348,7 +334,6 @@ void handle_button_press(int num){
                     return;
                 }
                 if(alt->p[0] != 0){ // there is a mod for that button
-                    set_param_led_bar_for_pointer(alt->p[0], alt->min, alt->max);
                     set_param_selected(num, false);   
                 } else if(alt_sel->p[0] != 0){ // there is an alt-sel for that button
                     float cur = *alt_sel->p[0];
@@ -364,7 +349,6 @@ void handle_button_press(int num){
             } else {
                 handle_matrix_press(num);
                 if(mod->p[0] != 0){ // there is a mod for that button press
-                    set_param_led_bar_for_pointer(mod->p[0], mod->min, mod->max);
                     set_param_selected(num, false);
                 } else if(sel->p[0] != 0){ // there is a sel for that button press
                     float cur = *sel->p[0];
