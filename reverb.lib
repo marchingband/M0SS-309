@@ -1,14 +1,14 @@
 import("stdfaust.lib");
 
 reverb = environment {
-    // delay_time = 0.2;        // 0.1 - 60 sec
+    delay_time = 0.2;        // 0.1 - 60 sec
     damping = 0.3;             // 0 - 1
-    size = 1;                // 0.5 - 3
+    // size = 1;                // 0.5 - 3
     early_diffusion = 0.6;   // 0 - 1
     mod_depth = 0.1;         // 0 - 1
     mod_freq = 2;            // 0 - 10 hz
-    // reverb(fb, delay_time,size) = re.greyhole(
-    reverb(fb, delay_time) = re.greyhole(
+    reverb(fb, delay_time, size) = re.greyhole(
+    // reverb(fb, delay_time) = re.greyhole(
         delay_time,
         damping,
         size,

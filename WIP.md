@@ -2,7 +2,6 @@ TODO:
 - improve colors
 - more reverb controls? difuse?
 - - adding size causes crashes?
-- stuck notes
 
 LAST : 
 - poly mod
@@ -18,6 +17,7 @@ LAST :
 - MIDI out
 - glide
 - display chorus mode
+- stuck notes
 
 WIP :
 - json file format

@@ -109,7 +109,7 @@ poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
 transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1) : si.smoo;
 glide = hslider("glide[style:knob][alt:10][midi:64]", 0.001, 0, 0.999, 0.001) : si.smoo;
 
-// FX start at [midi:70]
+// FX start at [midi:69]
 
 // mod path ranges in cents
 LFO_PCH_RC = 2400;
