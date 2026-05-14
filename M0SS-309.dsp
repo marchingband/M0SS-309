@@ -201,7 +201,7 @@ with {
     osc_pair = variable_osc.hs_fm_osc_pair_fb ~ fb;
     // osc_pair = variable_osc.hs_fm_osc_pair(os1_pitch_base, os2_pitch, pw_vosc_1, pw_vosc_2, ws_vosc_1, ws_vosc_2, sync, _os2_os1, _os2_pw1);
     os1 = osc_pair : (_,!);
-    os2 = osc_pair : (!,_);
+    os2 = osc_pair : (!,_) <: attach(vbargraph("[osc_2_%x][hidden:1]", -1 , 1));
 
     audio = os1 * os1_vol, os2 * os2_vol, noise * noise_vol :> *(0.5);
     out = audio : vcf : *(env_amp);

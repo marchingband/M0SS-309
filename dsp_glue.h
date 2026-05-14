@@ -7,6 +7,8 @@ extern "C" {
 
 int min(int a, int b);
 int max(int a, int b);
+float f_min(float a, float b);
+float f_max(float a, float b);
 
 typedef struct UIGlue UIGlue; // Forward declaration
 

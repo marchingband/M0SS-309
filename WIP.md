@@ -24,3 +24,4 @@ WIP :
 - optimize oscillator code, hopefully free up processor during FM
 
 NEXT :
+- mod matrix lights

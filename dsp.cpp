@@ -324,6 +324,21 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
             // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "Invalid number format after 'gate_'");
         }    
     } 
+
+    const char *osc_2_prefix = "osc_2_";
+    size_t osc_2_prefix_len = strlen(osc_2_prefix);
+    if (strncmp(key, osc_2_prefix, osc_2_prefix_len) == 0) // its an osc_2
+    {
+        const char *number_part = key + osc_2_prefix_len;
+        char *endptr;
+        int value = (int)strtol(number_part, &endptr);
+        if (*endptr == '\0') {
+            Signals[cur_core_init].osc_2[value] = p;
+            CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to osc_2 %d in dsp %d", value, cur_core_init);
+        } else {
+            // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "Invalid number format after 'gate_'");
+        }    
+    } 
         
     if(strcmp(key, "lfo") == 0){ // its the lfo
         Signals[cur_core_init].lfo = p;
