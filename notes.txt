@@ -10,20 +10,13 @@ TODO:
 
 BUGS:
 - launchkey gets no note offs
-- chorus pops when toggled
-- OSC-1 should be sync master, FM destination, and have 3 waveforms
-    OSC-2 should be LFO, detunable, sync slave
 
 FEATURES:
+- Soft clip master
+- attenuverters for some params.
 - optional lfo per voice
-- more reverb controls
-- mono/unison mode (VA osc drift, portamento)
 - optional quantize osc's to semitones. // encoder pressed/not
-- master volume / transpose
-- bus in mod matrix (for mod wheel ganged fx) // should just be a button, to toggle polymod mode, where whole matrix is for the polymod
 - multiple keytracking modes (1/2 and full)(or continuosly variable)
-- n banks of presets
-- invert secondary ADSR ?
 
 buttons:
 - MONO    

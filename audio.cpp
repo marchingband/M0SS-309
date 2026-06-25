@@ -156,6 +156,20 @@ static void scan_buffer_non_finite(const char *stage, unsigned source, float **b
 }
 #endif
 
+inline float soft_limit(float x) {
+      return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
+}
+
+inline float soft_clip(float x) {
+    if (x < -3.0f) {
+        return -1.0f;
+    } else if (x > 3.0f) {
+        return 1.0f;
+    } else {
+        return soft_limit(x);
+    }
+}
+
 unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
 {
     // int min = GetRangeMin();
@@ -241,11 +255,17 @@ unsigned CPDI2S::GetChunk (u32 *pBuffer, unsigned nChunkSize)
         inBuffers[0][i] = buffers_1[0][i] + buffers_2[0][i] + buffers_3[0][i];
         inBuffers[1][i] = buffers_1[1][i] + buffers_2[1][i] + buffers_3[1][i];
     }
-
-#if APP_ENABLE_RUNTIME_DEBUG_LOGS
+    
+    #if APP_ENABLE_RUNTIME_DEBUG_LOGS
     scan_buffer_non_finite("mix", 0, inBuffers, 2, NUM_FRAMES);
-#endif
-
+    #endif
+    
+    
+    for(unsigned i=0; i<NUM_FRAMES; i++)
+    {
+        inBuffers[0][i] = soft_clip(inBuffers[0][i]);
+        inBuffers[1][i] = soft_clip(inBuffers[1][i]);
+    }
 
     computeMasterFX(dsp0, NUM_FRAMES, inBuffers, outBuffers);
 

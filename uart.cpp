@@ -19,6 +19,7 @@ void uart_init(CSerialDevice *uart_p){
     uart = uart_p;
     // uart->Initialize(115200);
     uart->Initialize(31250);
+    uart->SetOptions(uart->GetOptions() & ~SERIAL_OPTION_ONLCR);
 }
 
 void uart_write(const u8 *buffer, unsigned count)
