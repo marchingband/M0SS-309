@@ -31,6 +31,8 @@ static int s_MonoHead = 0;  // oldest note
 static int s_MonoTail = 0;  // next free slot
 static int s_MonoCount = 0;
 u8 midi_channel = 0;
+u8 midi_pitch_bend_up = 2;
+u8 midi_pitch_bend_down = 2;
 u8 cc_map[NUM_CC_MAP] = {0};
 int mode_learn_current_cc = 0;
 int learn_mode_state = LEARN_MODE_READY;
@@ -42,6 +44,44 @@ static void set_param_vals(float *(&vals)[NUM_DSP], float val)
             *(vals[i]) = val;
         }
     }
+}
+
+static int clamp_pitch_bend_range(int semitones)
+{
+    if (semitones < 0) {
+        return 0;
+    }
+    if (semitones > 12) {
+        return 12;
+    }
+    return semitones;
+}
+
+static void set_global_cc_value(int cc_num, float val)
+{
+    if (cc_num <= 0 || cc_num >= NUM_CC) {
+        return;
+    }
+
+    set_param_vals(CCs[cc_num].p, val);
+}
+
+void midi_set_pitch_bend_up(int semitones)
+{
+    midi_pitch_bend_up = (u8) clamp_pitch_bend_range(semitones);
+    set_global_cc_value(CC_NUM_PB_UP, (float) midi_pitch_bend_up);
+}
+
+void midi_set_pitch_bend_down(int semitones)
+{
+    midi_pitch_bend_down = (u8) clamp_pitch_bend_range(semitones);
+    set_global_cc_value(CC_NUM_PB_DOWN, (float) midi_pitch_bend_down);
+}
+
+void midi_apply_global_config(void)
+{
+    midi_set_pitch_bend_up(midi_pitch_bend_up);
+    midi_set_pitch_bend_down(midi_pitch_bend_down);
 }
 
 static int get_cc_from_pointer(float *p)
@@ -101,6 +141,14 @@ static void apply_mapped_cc(int internal_cc, u8 midi_val)
     // float steps = cc->mul * (float) midi_val * 64.0;
     float whole_steps = roundf(steps);
     float val = (cc->step * whole_steps) + cc->min;
+    if (internal_cc == CC_NUM_PB_UP) {
+        midi_set_pitch_bend_up((int) roundf(val));
+        return;
+    }
+    if (internal_cc == CC_NUM_PB_DOWN) {
+        midi_set_pitch_bend_down((int) roundf(val));
+        return;
+    }
     set_param_vals(cc->p, val);
 }
 
@@ -420,6 +468,16 @@ static void handle_channel_aftertouch(u8 value)
     apply_mapped_cc(cc_map[CC_MAP_AFTERTOUCH_IDX], value);
 }
 
+static void handle_pitch_bend(u8 lsb, u8 msb)
+{
+    u16 value = (u16) ((msb & 0b01111111) << 7) | (u16) (lsb & 0b01111111);
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        if (Signals[dsp].pitch_bend != 0) {
+            *(Signals[dsp].pitch_bend) = (float) value;
+        }
+    }
+}
+
 void handle_midi_byte(u8 byte)
 {
     if(parse(byte))
@@ -478,6 +536,12 @@ void handle_midi_byte(u8 byte)
             case MIDI_AFTERTOUCH: {
                 if (len > 1) {
                     handle_channel_aftertouch(msg[1] & 0b01111111);
+                }
+                break;
+            }
+            case MIDI_PITCH_BEND: {
+                if (len > 2) {
+                    handle_pitch_bend(msg[1], msg[2]);
                 }
                 break;
             }

@@ -51,6 +51,8 @@ void handle_encoder(bool up, u64 now);
 bool alt_held(void);
 int get_matrix_cc_for_button(int num);
 bool midi_channel_adjust_held(void);
+bool pitch_bend_up_adjust_held(void);
+bool pitch_bend_down_adjust_held(void);
 bool chorus_mode_display_held(void);
 void set_param_selected(int button, bool is_cc);
 

@@ -60,6 +60,16 @@ bool midi_channel_adjust_held(void)
     return alt_held() && button_pushes[BUTTON_NUM_MIDI_CHANNEL] != 0;
 }
 
+bool pitch_bend_up_adjust_held(void)
+{
+    return alt_held() && button_pushes[BUTTON_NUM_MATRIX_COLUMN_3] != 0;
+}
+
+bool pitch_bend_down_adjust_held(void)
+{
+    return alt_held() && button_pushes[BUTTON_NUM_MATRIX_COLUMN_4] != 0;
+}
+
 bool chorus_mode_display_held(void)
 {
     return alt_held() && button_pushes[BUTTON_NUM_CHORUS_MODE] != 0;
@@ -141,6 +151,18 @@ void handle_encoder(bool up, u64 now){
         } else {
             midi_channel -= midi_channel > 0;
         }
+        midi_config_mark_dirty(now);
+        return;
+    }
+
+    if (pitch_bend_up_adjust_held()) {
+        midi_set_pitch_bend_up((int) midi_pitch_bend_up + (up ? 1 : -1));
+        midi_config_mark_dirty(now);
+        return;
+    }
+
+    if (pitch_bend_down_adjust_held()) {
+        midi_set_pitch_bend_down((int) midi_pitch_bend_down + (up ? 1 : -1));
         midi_config_mark_dirty(now);
         return;
     }
@@ -333,6 +355,9 @@ void handle_button_press(int num){
                     return;
                 }
                 if(num == BUTTON_NUM_MIDI_CHANNEL){
+                    return;
+                }
+                if(num == BUTTON_NUM_MATRIX_COLUMN_3 || num == BUTTON_NUM_MATRIX_COLUMN_4){
                     return;
                 }
                 if(alt->p[0] != 0){ // there is a mod for that button

@@ -170,6 +170,7 @@ static void benchmark_dsp_core(unsigned core_index, u32 elapsed_us)
 
 void extract(const char *name, float *p, float init, float min, float max, float step){
     // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "extract %s", name);
+    bool found = false;
     const char *pitch_prefix = "freq_";
     size_t pitch_prefix_len = strlen(pitch_prefix);
 
@@ -181,7 +182,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
         const char *number_part = name + pitch_prefix_len;
         char *endptr;
         int value = (int)strtol(number_part, &endptr);
-        if (*endptr == '\0') {
+        if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
             Signals[cur_core_init].pitch[value] = p;
             CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to pitch %d in dsp %d", value, cur_core_init);
         } else {
@@ -194,7 +195,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
         const char *number_part = name + gate_prefix_len;
         char *endptr;
         int value = (int)strtol(number_part, &endptr);
-        if (*endptr == '\0') {
+        if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
                 Signals[cur_core_init].gate[value] = p;
                 CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to gate %d in dsp %d", value, cur_core_init);
         } else {
@@ -202,7 +203,6 @@ void extract(const char *name, float *p, float init, float min, float max, float
         }    
     }
 
-    bool found = false;
     for(int i=0; i<NUM_CC; i++)
     {
         struct CC *cc = &CCs[i];
@@ -305,7 +305,7 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
         const char *number_part = key + env_prefix_len;
         char *endptr;
         int value = (int)strtol(number_part, &endptr);
-        if (*endptr == '\0') {
+        if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
             Signals[cur_core_init].env[value] = p;
             CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to env %d in dsp %d", value, cur_core_init);
         } else {
@@ -320,7 +320,7 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
         const char *number_part = key + env_amp_prefix_len;
         char *endptr;
         int value = (int)strtol(number_part, &endptr);
-        if (*endptr == '\0') {
+        if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
             Signals[cur_core_init].env_amp[value] = p;
             CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to env_amp %d in dsp %d", value, cur_core_init);
         } else {
@@ -335,7 +335,7 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
         const char *number_part = key + osc_2_prefix_len;
         char *endptr;
         int value = (int)strtol(number_part, &endptr);
-        if (*endptr == '\0') {
+        if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
             Signals[cur_core_init].osc_2[value] = p;
             CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to osc_2 %d in dsp %d", value, cur_core_init);
         } else {
@@ -353,39 +353,49 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
         // CLogger::Get ()->Write (FromDSP, LogDebug, "got midi %s:%s voice:%d", key, val, cur_core_init);
         long num = strtol(val, NULL);
 
-        struct CC *cc = &CCs[num];
-        cc->p[cur_core_init] = p;
+        if (num >= 0 && num < NUM_CC) {
+            struct CC *cc = &CCs[num];
+            cc->p[cur_core_init] = p;
+        }
     }
     if(strcmp("mod", key) == 0) // its a cc
     {
         // CLogger::Get ()->Write (FromDSP, LogDebug, "got mod %s:%s voice:%d", key, val, cur_core_init);
         long num = strtol(val, NULL);
 
-        struct Mod *mod = &Mods[num];
-        mod->p[cur_core_init] = p;
+        if (num >= 0 && num < NUM_BUTTONS) {
+            struct Mod *mod = &Mods[num];
+            mod->p[cur_core_init] = p;
+        }
     }
     if(strcmp("alt", key) == 0) // its a cc
     {
         long num = strtol(val, NULL);
 
-        struct Alt *alt = &Alts[num];
-        alt->p[cur_core_init] = p;
+        if (num >= 0 && num < NUM_BUTTONS) {
+            struct Alt *alt = &Alts[num];
+            alt->p[cur_core_init] = p;
+        }
     }
     if(strcmp("sel", key) == 0) // its a selection toggle
     {
         // CLogger::Get ()->Write (FromDSP, LogDebug, "got sel %s:%s voice:%d", key, val, cur_core_init);
         long num = strtol(val, NULL);
 
-        struct Sel *sel = &Sels[num];
-        sel->p[cur_core_init] = p;
+        if (num >= 0 && num < NUM_BUTTONS) {
+            struct Sel *sel = &Sels[num];
+            sel->p[cur_core_init] = p;
+        }
     }
     if(strcmp("alt-sel", key) == 0) // its a selection toggle with alt held
     {
         // CLogger::Get ()->Write (FromDSP, LogDebug, "got alt-sel %s:%s voice:%d", key, val, cur_core_init);
         long num = strtol(val, NULL);
 
-        struct AltSel *alt_sel = &AltSels[num];
-        alt_sel->p[cur_core_init] = p;
+        if (num >= 0 && num < NUM_BUTTONS) {
+            struct AltSel *alt_sel = &AltSels[num];
+            alt_sel->p[cur_core_init] = p;
+        }
         // printf("got alt_sel\n\r\r");
     }
     if(strcmp("asb", key) == 0) // its a modifuer with alt held
@@ -393,8 +403,10 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
         // CLogger::Get ()->Write (FromDSP, LogDebug, "got asb %s:%s voice:%d", key, val, cur_core_init);
         long num = strtol(val, NULL);
 
-        struct Asb *asb = &Asbs[num];
-        asb->p[cur_core_init] = p;
+        if (num >= 0 && num < NUM_BUTTONS) {
+            struct Asb *asb = &Asbs[num];
+            asb->p[cur_core_init] = p;
+        }
     }
     // if(strcmp("pitch", key) == 0) // its the pitch
     // {
@@ -412,11 +424,10 @@ void declare(UIGlue *uiInterface, float *p, const char* key, const char* val){
     //     // printf("got vca pointer\n\r\r");
     //     Signals.vca = p;
     // }
-    // if(strcmp("pitch-bend", key) == 0) // its the pitch bend
-    // {
-    //     // printf("got pitch bend pointer\n\r\r");
-    //     Signals.pitch_bend = p;
-    // }
+    if(strcmp("pitch-bend", key) == 0) // its the pitch bend
+    {
+        Signals[cur_core_init].pitch_bend = p;
+    }
     // if(strcmp("fine-tune", key) == 0) // its the fine tuning
     // {
     //     // printf("got fine-tune pointer\n\r\r");

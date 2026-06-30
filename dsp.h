@@ -72,7 +72,7 @@ struct Sigs {
     float *env[NUM_VOICES];
     float *env_amp[NUM_VOICES];
     float *osc_2[NUM_VOICES];
-    // float *pitch_bend;
+    float *pitch_bend;
     // float *vca;
     // float *fine_tune;
     // float *transpose;

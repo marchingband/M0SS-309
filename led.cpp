@@ -121,6 +121,8 @@ static bool uses_signed_int_led_bar(int cc_num)
     switch (cc_num) {
     case CC_NUM_TUNE:
     case CC_NUM_TRANSPOSE:
+    case CC_NUM_PB_UP:
+    case CC_NUM_PB_DOWN:
         return true;
     default:
         return false;
@@ -146,6 +148,18 @@ static bool get_led_bar_source(float **val_p, float *min, float *max, int *cc_nu
 {
     if (midi_channel_adjust_held()) {
         led_bar_signed_int_value = (int) midi_channel;
+        led_bar_cc_num = -1;
+        return false;
+    }
+
+    if (pitch_bend_up_adjust_held()) {
+        led_bar_signed_int_value = (int) midi_pitch_bend_up;
+        led_bar_cc_num = -1;
+        return false;
+    }
+
+    if (pitch_bend_down_adjust_held()) {
+        led_bar_signed_int_value = (int) midi_pitch_bend_down;
         led_bar_cc_num = -1;
         return false;
     }
@@ -484,7 +498,11 @@ void render_leds(void){
     set_led(30, matrix[3][2]); // OS2->VCF
 
     update_led_bar();
-    if (midi_channel_adjust_held() || chorus_mode_display_held() || uses_signed_int_led_bar(led_bar_cc_num)) {
+    if (midi_channel_adjust_held() ||
+        pitch_bend_up_adjust_held() ||
+        pitch_bend_down_adjust_held() ||
+        chorus_mode_display_held() ||
+        uses_signed_int_led_bar(led_bar_cc_num)) {
         render_signed_int_led_bar();
     } else {
         render_linear_led_bar();

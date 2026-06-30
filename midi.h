@@ -36,10 +36,15 @@ extern u8 cc_map[NUM_CC_MAP];
 extern int mode_learn_current_cc;
 extern int learn_mode_state;
 extern u8 midi_channel;
+extern u8 midi_pitch_bend_up;
+extern u8 midi_pitch_bend_down;
 
 void handle_note_on(u8 note);
 void handle_note_off(u8 note);
 void handle_midi_byte(u8 byte);
+void midi_apply_global_config(void);
+void midi_set_pitch_bend_up(int semitones);
+void midi_set_pitch_bend_down(int semitones);
 void midi_set_mono_mode(bool enabled);
 void midi_select_learn_target(int button, bool alt);
 

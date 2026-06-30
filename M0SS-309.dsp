@@ -109,8 +109,8 @@ poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
 transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1) : si.smoo;
 
 pitch_bend = hslider("pitch-bend[pitch-bend]", 8192, 0, 16383, 1); // 14bit
-pitch_bend_up   = hslider("pbend-up[midi:65]", 2, 1, 12, 1);                                // lfo.osc button
-pitch_bend_down = hslider("pbend-dn[midi:66]", 2, 1, 12, 1);                                // lfo.vcf button
+pitch_bend_up   = hslider("pbend-up[midi:65]", 2, 0, 12, 1);                                // alt + mod matrix OS2
+pitch_bend_down = hslider("pbend-dn[midi:66]", 2, 0, 12, 1);                                // alt + mod matrix PW2
 pitch_bend_float = (pitch_bend - 8192.0) / 8191.0 : clamp(-1.0, 1.0) ;
 pitch_bend_ratio = ba.if(pitch_bend_float > 0.0, pitch_bend_float * pitch_bend_up, pitch_bend_float * pitch_bend_down) : ba.semi2ratio;
 

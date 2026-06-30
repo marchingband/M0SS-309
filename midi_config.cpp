@@ -2,6 +2,7 @@
 
 #include <circle/logger.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "midi.h"
 #include "preset_store.h"
@@ -16,43 +17,44 @@ static bool s_Ready = false;
 static bool s_Dirty = false;
 static u64 s_LastChangeUs = 0;
 
-static bool parse_midi_channel_line(const char *buffer, u8 *out_channel)
+static bool parse_u8_line(const char *buffer, const char *prefix, long min_value, long max_value, bool required, u8 *out_value)
 {
-    if (buffer == 0 || out_channel == 0) {
+    if (buffer == 0 || prefix == 0 || out_value == 0) {
         return false;
     }
 
-    static const char Prefix[] = "midi_channel=";
-    size_t prefix_len = sizeof(Prefix) - 1;
-    const char *line = strstr(buffer, Prefix);
+    size_t prefix_len = strlen(prefix);
+    const char *line = strstr(buffer, prefix);
     if (line == 0) {
-        return false;
+        return !required;
     }
 
     line += prefix_len;
     char *end = 0;
     long parsed = strtol(line, &end);
-    if (end == line || parsed < 0 || parsed > 16) {
+    if (end == line || parsed < min_value || parsed > max_value) {
         return false;
     }
 
-    *out_channel = (u8) parsed;
+    *out_value = (u8) parsed;
     return true;
 }
 
 static bool write_config_file(void)
 {
-    char buffer[32];
-    static const char Prefix[] = "midi_channel=";
-    memcpy(buffer, Prefix, sizeof(Prefix) - 1);
-    unsigned len = sizeof(Prefix) - 1;
-    u8 channel = midi_channel;
-    if (channel >= 10) {
-        buffer[len++] = (char) ('0' + (channel / 10));
+    char buffer[96];
+    int formatted = snprintf(
+        buffer,
+        sizeof(buffer),
+        "midi_channel=%u\npitch_bend_up=%u\npitch_bend_down=%u\n",
+        (unsigned) midi_channel,
+        (unsigned) midi_pitch_bend_up,
+        (unsigned) midi_pitch_bend_down);
+    if (formatted <= 0 || (size_t) formatted >= sizeof(buffer)) {
+        CLogger::Get()->Write(FromMidiConfig, LogWarning, "format failed");
+        return false;
     }
-    buffer[len++] = (char) ('0' + (channel % 10));
-    buffer[len++] = '\n';
-    buffer[len] = '\0';
+    unsigned len = (unsigned) formatted;
 
     FIL file;
     UINT written = 0;
@@ -82,7 +84,13 @@ static bool write_config_file(void)
         return false;
     }
 
-    CLogger::Get()->Write(FromMidiConfig, LogNotice, "saved channel=%u", (unsigned) midi_channel);
+    CLogger::Get()->Write(
+        FromMidiConfig,
+        LogNotice,
+        "saved channel=%u pb_up=%u pb_down=%u",
+        (unsigned) midi_channel,
+        (unsigned) midi_pitch_bend_up,
+        (unsigned) midi_pitch_bend_down);
     return true;
 }
 
@@ -108,7 +116,7 @@ void midi_config_init(FATFS *file_system)
         return;
     }
 
-    char buffer[64];
+    char buffer[128];
     UINT read = 0;
     result = f_read(&file, buffer, sizeof(buffer) - 1, &read);
     f_close(&file);
@@ -120,13 +128,25 @@ void midi_config_init(FATFS *file_system)
     buffer[read] = '\0';
 
     u8 channel = 0;
-    if (!parse_midi_channel_line(buffer, &channel)) {
+    u8 pitch_bend_up = midi_pitch_bend_up;
+    u8 pitch_bend_down = midi_pitch_bend_down;
+    if (!parse_u8_line(buffer, "midi_channel=", 0, 16, true, &channel) ||
+        !parse_u8_line(buffer, "pitch_bend_up=", 0, 12, false, &pitch_bend_up) ||
+        !parse_u8_line(buffer, "pitch_bend_down=", 0, 12, false, &pitch_bend_down)) {
         CLogger::Get()->Write(FromMidiConfig, LogWarning, "invalid config, defaulting to omni");
         return;
     }
 
     midi_channel = channel;
-    CLogger::Get()->Write(FromMidiConfig, LogNotice, "loaded channel=%u", (unsigned) channel);
+    midi_set_pitch_bend_up(pitch_bend_up);
+    midi_set_pitch_bend_down(pitch_bend_down);
+    CLogger::Get()->Write(
+        FromMidiConfig,
+        LogNotice,
+        "loaded channel=%u pb_up=%u pb_down=%u",
+        (unsigned) channel,
+        (unsigned) midi_pitch_bend_up,
+        (unsigned) midi_pitch_bend_down);
 }
 
 void midi_config_service(u64 now_us)

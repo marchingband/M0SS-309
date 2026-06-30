@@ -215,6 +215,7 @@ TShutdownMode CKernel::Run (void)
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
 	m_RotaryEncoder.RegisterEventHandler (EventHandler, this);
 	dsp_init(&m_Timer);
+	midi_apply_global_config();
 	preset_store_finalize_boot_defaults();
 	init_midi_parser();
 	if (!CI2SSoundDevice->AllocateQueue (QUEUE_SIZE_MSECS)){
