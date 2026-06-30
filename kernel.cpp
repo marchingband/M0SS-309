@@ -187,10 +187,6 @@ boolean CKernel::Initialize (void)
 
 void CKernel::MIDIPacketHandler (unsigned nCable, u8 *pPacket, unsigned nLength)
 {
-	if (nLength > 0)
-	{
-		uart_write(pPacket, nLength);
-	}
 	QueueMIDIBytes(pPacket, nLength);
 }
 
