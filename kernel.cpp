@@ -76,7 +76,7 @@ static void ProcessQueuedMIDI(void)
 		byte = s_MIDIQueue[s_MIDIQueueHead];
 		s_MIDIQueueHead = (s_MIDIQueueHead + 1) % MIDI_QUEUE_SIZE;
 		s_MIDIQueueLock.Release();
-
+		uart_write(&byte, 1);
 		handle_midi_byte(byte);
 	}
 }
