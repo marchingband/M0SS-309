@@ -13,6 +13,7 @@ BUGS:
 
 FEATURES:
 - Soft clip master
+-- apply master volume to each voice, then clip, then FX.
 - attenuverters for some params.
 - optional lfo per voice
 - optional quantize osc's to semitones. // encoder pressed/not

@@ -98,6 +98,7 @@ static void apply_mapped_cc(int internal_cc, u8 midi_val)
     }
 
     float steps = cc->mul * (float) midi_val;
+    // float steps = cc->mul * (float) midi_val * 64.0;
     float whole_steps = roundf(steps);
     float val = (cc->step * whole_steps) + cc->min;
     set_param_vals(cc->p, val);
@@ -438,14 +439,13 @@ void handle_midi_byte(u8 byte)
                 code = MIDI_NOTE_OFF;
             }
         }
-        switch(code){
-            case MIDI_NOTE_ON: {
-                uint8_t note = msg[1] & 0b01111111;
-                uint8_t velocity = msg[2] & 0b01111111;
-                CLogger::Get ()->Write (FromMidi, LogNotice, "note on %d", note);
-                if(ui_mode == UI_MODE_LEARN){
-                    if(mode_learn_current_cc > 0){
-                        cc_map[CC_MAP_VELOCITY_IDX] = (u8) mode_learn_current_cc;
+		switch(code){
+			case MIDI_NOTE_ON: {
+				uint8_t note = msg[1] & 0b01111111;
+				uint8_t velocity = msg[2] & 0b01111111;
+				if(ui_mode == UI_MODE_LEARN){
+					if(mode_learn_current_cc > 0){
+						cc_map[CC_MAP_VELOCITY_IDX] = (u8) mode_learn_current_cc;
                         learn_mode_state = LEARN_MODE_LEARNED;
                     }
                     break;
@@ -453,13 +453,12 @@ void handle_midi_byte(u8 byte)
                 handle_note_on(note);
                 apply_mapped_cc(cc_map[CC_MAP_VELOCITY_IDX], velocity);
                 break;
-            }
-            case MIDI_NOTE_OFF: {
-                uint8_t note = msg[1] & 0b01111111;
-                CLogger::Get ()->Write (FromMidi, LogNotice, "note off %d", note);
-                handle_note_off(note);
-                break;
-            }
+			}
+			case MIDI_NOTE_OFF: {
+				uint8_t note = msg[1] & 0b01111111;
+				handle_note_off(note);
+				break;
+			}
             case MIDI_CC: {
                 uint8_t cc_num_in = msg[1] & 0b01111111;
                 uint8_t cc_val = msg[2] & 0b01111111;

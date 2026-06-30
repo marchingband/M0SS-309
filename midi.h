@@ -28,6 +28,9 @@
 #define CC_NUM_TUNE 16
 #define CC_NUM_POLYMOD 62
 #define CC_NUM_TRANSPOSE 63
+#define CC_NUM_GLIDE 64
+#define CC_NUM_PB_UP 65
+#define CC_NUM_PB_DOWN 66
 
 extern u8 cc_map[NUM_CC_MAP];
 extern int mode_learn_current_cc;

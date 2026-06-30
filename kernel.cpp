@@ -14,6 +14,7 @@
 #include <circle/sound/i2ssoundbasedevice.h>
 #include <circle/sound/soundbasedevice.h>
 #include <circle/gpiopin.h>
+#include <circle/spinlock.h>
 
 
 #include "midiXparser.h"
@@ -38,6 +39,47 @@
 static const char FromKernel[] = "kernel";
 
 static CKernel *s_pKernel = nullptr;
+static constexpr unsigned MIDI_QUEUE_SIZE = 1024;
+static u8 s_MIDIQueue[MIDI_QUEUE_SIZE];
+static volatile unsigned s_MIDIQueueHead = 0;
+static volatile unsigned s_MIDIQueueTail = 0;
+static CSpinLock s_MIDIQueueLock(FIQ_LEVEL);
+
+static void QueueMIDIBytes(const u8 *pData, unsigned nLength)
+{
+	if (pData == 0 || nLength == 0) {
+		return;
+	}
+
+	s_MIDIQueueLock.Acquire();
+	for (unsigned i = 0; i < nLength; i++) {
+		unsigned next = (s_MIDIQueueTail + 1) % MIDI_QUEUE_SIZE;
+		if (next == s_MIDIQueueHead) {
+			break;
+		}
+		s_MIDIQueue[s_MIDIQueueTail] = pData[i];
+		s_MIDIQueueTail = next;
+	}
+	s_MIDIQueueLock.Release();
+}
+
+static void ProcessQueuedMIDI(void)
+{
+	while (true) {
+		u8 byte = 0;
+
+		s_MIDIQueueLock.Acquire();
+		if (s_MIDIQueueHead == s_MIDIQueueTail) {
+			s_MIDIQueueLock.Release();
+			break;
+		}
+		byte = s_MIDIQueue[s_MIDIQueueHead];
+		s_MIDIQueueHead = (s_MIDIQueueHead + 1) % MIDI_QUEUE_SIZE;
+		s_MIDIQueueLock.Release();
+
+		handle_midi_byte(byte);
+	}
+}
 
 CKernel::CKernel (void)
 :	
@@ -145,13 +187,11 @@ boolean CKernel::Initialize (void)
 
 void CKernel::MIDIPacketHandler (unsigned nCable, u8 *pPacket, unsigned nLength)
 {
-	if (nLength > 0) {
+	if (nLength > 0)
+	{
 		uart_write(pPacket, nLength);
 	}
-
-	for(unsigned i=0; i< nLength; i++){
-		handle_midi_byte(pPacket[i]);
-	}
+	QueueMIDIBytes(pPacket, nLength);
 }
 
 void CKernel::USBDeviceRemovedHandler (CDevice *pDevice, void *pContext)
@@ -191,9 +231,11 @@ TShutdownMode CKernel::Run (void)
 
 	while(1){
 		// main loop
+		ProcessQueuedMIDI();
 		scan_buttons(&m_Timer);
 		process_buttons(&m_Timer);
-		midi_config_service(m_Timer.GetClockTicks64());
+		u64 nNow = m_Timer.GetClockTicks64();
+		midi_config_service(nNow);
 		// render_leds();
 		read_uart();
 		uart_service();

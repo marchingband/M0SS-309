@@ -7,6 +7,9 @@
 #include "dsp.h"
 #include "logging.h"
 
+#define STEP_DIVISOR 127.0
+// #define STEP_DIVISOR 8192.0
+
 #if APP_ENABLE_RUNTIME_DEBUG_LOGS
 static const char FromDSPDebug[] = "DSP dbg";
 static const float DSPDebugHugeThreshold = 1.0e12f;
@@ -209,7 +212,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
             cc->init = init;
             cc->step = step;
             float steps = (max - min) / step;
-            float per = steps / 128.0;
+            float per = steps / STEP_DIVISOR;
             cc->mul = per;
             strcpy(cc->name, name);
             found = true;
@@ -225,7 +228,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
             mod->init = init;
             mod->step = step;
             float steps = (max - min) / step;
-            float per = steps / 128.0;
+            float per = steps / STEP_DIVISOR;
             mod->mul = per;
             strcpy(mod->name, name);
             found = true;
@@ -241,7 +244,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
             alt->init = init;
             alt->step = step;
             float steps = (max - min) / step;
-            float per = steps / 128.0;
+            float per = steps / STEP_DIVISOR;
             alt->mul = per;
             strcpy(alt->name, name);
             found = true;
@@ -281,7 +284,7 @@ void extract(const char *name, float *p, float init, float min, float max, float
             asb->init = init;
             asb->step = step;
             float steps = (max - min) / step;
-            float per = steps / 128.0;
+            float per = steps / STEP_DIVISOR;
             asb->mul = per;
             strcpy(asb->name, name);
             found = true;

@@ -107,6 +107,13 @@ p_os2_vcf = pMatrixGos2(hslider("p.os2.vcf[style:knob][midi:61]", 0, 0, 1, 0.001
 poly_mod = hslider("poly.mod[style:knob][midi:62]", 0, 0, 1, 0.001) : si.smoo;
 
 transpose = hslider("transpose[style:knob][alt:16][midi:63]", 0, -11, 11, 1) : si.smoo;
+
+pitch_bend = hslider("pitch-bend[pitch-bend]", 8192, 0, 16383, 1); // 14bit
+pitch_bend_up   = hslider("pbend-up[midi:65]", 2, 1, 12, 1);                                // lfo.osc button
+pitch_bend_down = hslider("pbend-dn[midi:66]", 2, 1, 12, 1);                                // lfo.vcf button
+pitch_bend_float = (pitch_bend - 8192.0) / 8191.0 : clamp(-1.0, 1.0) ;
+pitch_bend_ratio = ba.if(pitch_bend_float > 0.0, pitch_bend_float * pitch_bend_up, pitch_bend_float * pitch_bend_down) : ba.semi2ratio;
+
 glide = hslider("glide[style:knob][alt:10][midi:64]", 0.001, 0, 0.999, 0.001) : si.smoo;
 
 // FX start at [midi:69]
@@ -161,7 +168,7 @@ with {
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
     pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
 
-    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz : si.smooth(ba.tau2pole(glide));
+    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz : *(pitch_bend_ratio) : si.smooth(ba.tau2pole(glide));
     os1_pitch_base = freq * ba.cent2ratio(os1_mod);
     
     os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn); // tune and detune ratio
