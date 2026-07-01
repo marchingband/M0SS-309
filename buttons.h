@@ -6,6 +6,8 @@
 
 #define BUTTON_NUM_ALT 17
 #define BUTTON_NUM_ENCODER 29
+#define BUTTON_NUM_OSC1_MIX 1
+#define BUTTON_NUM_OSC2_MIX 19
 
 #define BUTTON_NUM_MATRIX_ROW_0 23
 #define BUTTON_NUM_MATRIX_ROW_1 10
@@ -31,6 +33,10 @@
 #define UI_MODE_SAVE 2
 #define UI_MODE_LOAD 3
 
+#define RESET_REQUEST_NONE 0
+#define RESET_REQUEST_NORMAL 1
+#define RESET_REQUEST_FACTORY 2
+
 #include <circle/timer.h>
 
 extern int matrix_row_selected;
@@ -48,6 +54,7 @@ extern struct Param param_selected;
 void scan_buttons(CTimer *timer);
 void process_buttons(CTimer *timer);
 void handle_encoder(bool up, u64 now);
+int get_reset_request(void);
 bool alt_held(void);
 int get_matrix_cc_for_button(int num);
 bool midi_channel_adjust_held(void);

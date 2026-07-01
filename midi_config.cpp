@@ -173,3 +173,26 @@ void midi_config_mark_dirty(u64 now_us)
     s_Dirty = true;
     s_LastChangeUs = now_us;
 }
+
+bool midi_config_factory_reset(void)
+{
+    s_Dirty = false;
+    s_LastChangeUs = 0;
+    midi_channel = 0;
+    midi_set_pitch_bend_up(2);
+    midi_set_pitch_bend_down(2);
+
+    if (!s_Ready) {
+        CLogger::Get()->Write(FromMidiConfig, LogWarning, "factory reset ignored: config not ready");
+        return false;
+    }
+
+    FRESULT result = f_unlink(ConfigPath);
+    if (result == FR_OK || result == FR_NO_FILE) {
+        CLogger::Get()->Write(FromMidiConfig, LogNotice, "factory reset complete");
+        return true;
+    }
+
+    CLogger::Get()->Write(FromMidiConfig, LogWarning, "factory reset failed (%u)", (unsigned) result);
+    return false;
+}

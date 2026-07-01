@@ -542,3 +542,39 @@ bool preset_is_cursor_visible(void)
     u64 phase = CTimer::GetClockTicks64() / CursorBlinkIntervalUs;
     return (phase & 1ULL) == 0;
 }
+
+bool preset_store_factory_reset(void)
+{
+    if (!preset_store_ready) {
+        CLogger::Get()->Write(FromPresetStore, LogWarning, "factory reset ignored: store not ready");
+        return false;
+    }
+
+    bool ok = true;
+    char path[64];
+    for (int bank = 0; bank < PRESET_BANKS; bank++) {
+        for (int slot = 0; slot < PRESET_SLOTS; slot++) {
+            get_preset_path(bank, slot, path, sizeof(path));
+            FRESULT result = f_unlink(path);
+            if (result != FR_OK && result != FR_NO_FILE) {
+                ok = false;
+                CLogger::Get()->Write(
+                    FromPresetStore,
+                    LogWarning,
+                    "failed to delete preset bank=%d slot=%d (%u)",
+                    bank,
+                    slot,
+                    (unsigned) result);
+            }
+        }
+    }
+
+    memset(preset_exists, 0, sizeof(preset_exists));
+    current_preset_bank = -1;
+    current_preset_slot = -1;
+    preset_mode_bank = 0;
+    preset_mode_slot_cursor = 0;
+
+    CLogger::Get()->Write(FromPresetStore, ok ? LogNotice : LogWarning, "factory reset complete ok=%u", ok ? 1U : 0U);
+    return ok;
+}

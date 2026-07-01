@@ -54,6 +54,12 @@ struct Param param_selected = {
 bool poly_mod_active = false;
 int ui_mode = UI_MODE_PLAY;
 static bool alt_consumed = false;
+static bool reset_hold_active = false;
+static bool reset_hold_factory = false;
+static u64 reset_hold_started_us = 0;
+static int reset_request = RESET_REQUEST_NONE;
+
+static const u64 ResetHoldDurationUs = 2000000ULL;
 
 bool midi_channel_adjust_held(void)
 {
@@ -94,6 +100,70 @@ int matrix_column_selected = -1;
 
 bool alt_held(void){
     return button_state[BUTTON_NUM_ALT] == 0;
+}
+
+int get_reset_request(void)
+{
+    return reset_request;
+}
+
+static bool reset_base_chord_held(void)
+{
+    return button_pushes[BUTTON_NUM_ALT] != 0 &&
+        button_pushes[BUTTON_NUM_OSC2_MIX] != 0 &&
+        button_pushes[BUTTON_NUM_OSC1_MIX] != 0;
+}
+
+static void cancel_reset_hold(void)
+{
+    reset_hold_active = false;
+    reset_hold_factory = false;
+    reset_hold_started_us = 0;
+    led_set_reset_feedback(false, false);
+}
+
+static bool service_reset_chord(u64 now_us)
+{
+    if (reset_request != RESET_REQUEST_NONE) {
+        return true;
+    }
+
+    bool base_held = reset_base_chord_held();
+    bool encoder_held = button_pushes[BUTTON_NUM_ENCODER] != 0;
+
+    if (!reset_hold_active) {
+        if (!base_held) {
+            return false;
+        }
+
+        reset_hold_active = true;
+        reset_hold_factory = encoder_held;
+        reset_hold_started_us = now_us;
+        led_set_reset_feedback(true, reset_hold_factory);
+        CLogger::Get ()->Write (FromButtons, LogNotice, "reset hold started factory=%u", reset_hold_factory ? 1U : 0U);
+        return true;
+    }
+
+    if (!base_held || (reset_hold_factory && !encoder_held)) {
+        CLogger::Get ()->Write (FromButtons, LogNotice, "reset hold cancelled");
+        cancel_reset_hold();
+        return false;
+    }
+
+    if (!reset_hold_factory && encoder_held) {
+        reset_hold_factory = true;
+        led_set_reset_feedback(true, true);
+        CLogger::Get ()->Write (FromButtons, LogNotice, "reset hold upgraded to factory");
+    }
+
+    if (now_us - reset_hold_started_us < ResetHoldDurationUs) {
+        return true;
+    }
+
+    reset_request = reset_hold_factory ? RESET_REQUEST_FACTORY : RESET_REQUEST_NORMAL;
+    led_set_reset_feedback(true, reset_hold_factory);
+    CLogger::Get ()->Write (FromButtons, LogNotice, "reset requested factory=%u", reset_hold_factory ? 1U : 0U);
+    return true;
 }
 
 static bool handle_mode_switch_chord(int num)
@@ -186,6 +256,10 @@ static bool reset_param_selected(void)
 }
 
 void handle_encoder(bool up, u64 now){
+    if (service_reset_chord(now)) {
+        return;
+    }
+
     if (midi_channel_adjust_held()) {
         if(up){
             midi_channel += midi_channel < 16;
@@ -443,6 +517,9 @@ void handle_button_press(int num){
 }
 
 void process_buttons(CTimer *timer){
+    u64 reset_now_us = timer->GetClockTicks64();
+    bool reset_consuming = service_reset_chord(reset_now_us);
+
     for (int i =0; i< NUM_BUTTONS; i++)
     {
         bool state = button_state[i];
@@ -463,6 +540,12 @@ void process_buttons(CTimer *timer){
                         }
                     } else if (alt_held()) {
                         alt_consumed = true;
+                    }
+
+                    reset_now_us = timer->GetClockTicks64();
+                    reset_consuming = service_reset_chord(reset_now_us);
+                    if (reset_consuming) {
+                        continue;
                     }
 
                     if(i == BUTTON_NUM_ENCODER){
@@ -505,6 +588,12 @@ void process_buttons(CTimer *timer){
                     button_pushes[i] = 0;
                     button_state[i] = 1;
                     button_time[i] = now;
+                    reset_now_us = timer->GetClockTicks64();
+                    reset_consuming = service_reset_chord(reset_now_us);
+                    if (reset_consuming) {
+                        continue;
+                    }
+
                     if(i == BUTTON_NUM_ENCODER){
                         if (ui_mode != UI_MODE_SAVE && ui_mode != UI_MODE_LOAD) {
                             *(Signals[0].gate[0]) = 0;

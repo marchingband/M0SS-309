@@ -231,6 +231,23 @@ TShutdownMode CKernel::Run (void)
 		ProcessQueuedMIDI();
 		scan_buttons(&m_Timer);
 		process_buttons(&m_Timer);
+		int reset_request = get_reset_request();
+		if (reset_request != RESET_REQUEST_NONE) {
+			if (reset_request == RESET_REQUEST_FACTORY) {
+				m_Logger.Write (FromKernel, LogNotice, "factory reset requested");
+				bool presets_ok = preset_store_factory_reset();
+				bool config_ok = midi_config_factory_reset();
+				m_Logger.Write (
+					FromKernel,
+					(presets_ok && config_ok) ? LogNotice : LogWarning,
+					"factory reset storage result presets=%u config=%u",
+					presets_ok ? 1U : 0U,
+					config_ok ? 1U : 0U);
+			} else {
+				m_Logger.Write (FromKernel, LogNotice, "reset requested");
+			}
+			return ShutdownReboot;
+		}
 		u64 nNow = m_Timer.GetClockTicks64();
 		midi_config_service(nNow);
 		// render_leds();

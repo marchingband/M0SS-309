@@ -7,5 +7,6 @@
 void midi_config_init(FATFS *file_system);
 void midi_config_service(u64 now_us);
 void midi_config_mark_dirty(u64 now_us);
+bool midi_config_factory_reset(void);
 
 #endif

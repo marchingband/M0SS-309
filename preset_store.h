@@ -22,5 +22,6 @@ void preset_move_bank_cursor(int delta);
 bool preset_save_current_cursor(void);
 bool preset_load_current_cursor(void);
 bool preset_is_cursor_visible(void);
+bool preset_store_factory_reset(void);
 
 #endif

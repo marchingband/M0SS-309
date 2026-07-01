@@ -12,6 +12,7 @@ struct Pixel {
 
 void led_init(void);
 void stopSplash(void);
+void led_set_reset_feedback(bool active, bool factory);
 void render_leds(void);
 
 #endif

@@ -1,6 +1,5 @@
 TODO:
 - improve colors
-- 
 - reset/factory reset chords
 - filter keytracking
 

@@ -68,6 +68,8 @@ static float led_bar[11] = {0};
 static int led_bar_signed_int_value = 0;
 static int led_bar_cc_num = -1;
 static bool led_bar_tip_negative = false;
+static bool reset_feedback_active = false;
+static bool reset_feedback_factory = false;
 
 static struct Pixel matrix[4][5] = {0};
 static void set_led(unsigned int idx, struct Pixel pixel);
@@ -85,6 +87,7 @@ static const unsigned SlotLedMap[PRESET_SLOTS] = {
 };
 
 #define SPLASH_INTERVAL_US 100000ULL
+static const u64 ResetFeedbackToggleUs = 100000ULL;
 static u64 splash_last_update_us = 0;
 static u32 splash_rng = 1;
 static boolean splash_running = FALSE;
@@ -402,7 +405,31 @@ static void render_preset_browser(void)
     led_strip->Update();
 }
 
+void led_set_reset_feedback(bool active, bool factory)
+{
+    reset_feedback_active = active;
+    reset_feedback_factory = factory;
+}
+
+static void render_reset_feedback(void)
+{
+    u64 phase = CTimer::GetClockTicks64() / ResetFeedbackToggleUs;
+    struct Pixel pixel = (phase & 1ULL) == 0 ? (reset_feedback_factory ? Red : On) : Off;
+
+    for (unsigned i = 0; i < NUM_LED; i++) {
+        set_led(i, pixel);
+    }
+
+    assert(led_strip != nullptr);
+    led_strip->Update();
+}
+
 void render_leds(void){
+    if (reset_feedback_active) {
+        render_reset_feedback();
+        return;
+    }
+
     if (ui_mode == UI_MODE_LEARN) {
         struct Pixel learn_pixel = LightPink;
         if (learn_mode_state == LEARN_MODE_SELECTED) {
