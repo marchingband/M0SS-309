@@ -67,10 +67,13 @@ static struct Pixel LightRed = {
 static float led_bar[11] = {0};
 static int led_bar_signed_int_value = 0;
 static int led_bar_cc_num = -1;
+static bool led_bar_tip_negative = false;
 
 static struct Pixel matrix[4][5] = {0};
 static void set_led(unsigned int idx, struct Pixel pixel);
 static struct Pixel pixel_fade(float val);
+static struct Pixel pixel_fade_red(float val);
+static struct Pixel matrix_mod_pixel(float mod_value, float signal_value);
 static const unsigned BankLedMap[PRESET_BANKS] = {
     16, 15, 14, 13, 12,
     18, 19, 20, 21, 22,
@@ -217,6 +220,7 @@ void update_led_bar(void){
     float led_bar_min = 0;
     float led_bar_max = 0;
     led_bar_cc_num = -1;
+    led_bar_tip_negative = false;
 
     if (!get_led_bar_source(&led_bar_val_p, &led_bar_min, &led_bar_max, &led_bar_cc_num)) {
         return;
@@ -228,35 +232,62 @@ void update_led_bar(void){
     }
 
     float val = *led_bar_val_p;
-    float max = led_bar_max;
+    led_bar_tip_negative = val < 0.0f;
 
-    val -= led_bar_min;
-    max -= led_bar_min;
-    float out = val / max * 10;
+    float out = 0.0f;
+    if (led_bar_min < 0.0f && led_bar_max > 0.0f) {
+        float magnitude = val < 0.0f ? -val : val;
+        float max_magnitude = val < 0.0f ? -led_bar_min : led_bar_max;
+        out = max_magnitude > 0.0f ? magnitude / max_magnitude * 10.0f : 0.0f;
+    } else {
+        float range = led_bar_max - led_bar_min;
+        out = range > 0.0f ? (val - led_bar_min) / range * 10.0f : 0.0f;
+    }
+
+    if (out < 0.0f) {
+        out = 0.0f;
+    } else if (out > 10.0f) {
+        out = 10.0f;
+    }
+
+    int tip = (int) out;
+    float tip_amount = out - (float) tip;
+    if (tip_amount == 0.0f && out > 0.0f) {
+        tip_amount = 1.0f;
+    }
+
     for(int i=0; i<11; i++){
-        if(out > (i + 1)){
-            led_bar[i] = 1;
-        } else if(out < i) {
-            led_bar[i] = 0;
+        if(i < tip){
+            led_bar[i] = 1.0f;
+        } else if(i == tip){
+            led_bar[i] = tip_amount;
         } else {
-            led_bar[i] = out - i; // just the fractional part
+            led_bar[i] = 0.0f;
         }
     }
 }
 
 static void render_linear_led_bar(void)
 {
-    set_led(31, led_bar[10] == 0 ? Off : led_bar[10] == 1 ? On : pixel_fade(led_bar[10])); // 10
-    set_led(32, led_bar[9] == 0 ? Off : led_bar[9] == 1 ? On : pixel_fade(led_bar[9])); // 9
-    set_led(33, led_bar[8] == 0 ? Off : led_bar[8] == 1 ? On : pixel_fade(led_bar[8])); // 8
-    set_led(34, led_bar[7] == 0 ? Off : led_bar[7] == 1 ? On : pixel_fade(led_bar[7])); // 7
-    set_led(35, led_bar[6] == 0 ? Off : led_bar[6] == 1 ? On : pixel_fade(led_bar[6])); // 6
-    set_led(36, led_bar[5] == 0 ? Off : led_bar[5] == 1 ? On : pixel_fade(led_bar[5])); // 5
-    set_led(37, led_bar[4] == 0 ? Off : led_bar[4] == 1 ? On : pixel_fade(led_bar[4])); // 4
-    set_led(38, led_bar[3] == 0 ? Off : led_bar[3] == 1 ? On : pixel_fade(led_bar[3])); // 3
-    set_led(39, led_bar[2] == 0 ? Off : led_bar[2] == 1 ? On : pixel_fade(led_bar[2])); // 2
-    set_led(40, led_bar[1] == 0 ? Off : led_bar[1] == 1 ? On : pixel_fade(led_bar[1])); // 1
-    set_led(41, led_bar[0] == 0 ? Off : led_bar[0] == 1 ? On : pixel_fade(led_bar[0])); // 0
+    int leading = -1;
+    for (int i = 10; i >= 0; i--) {
+        if (led_bar[i] > 0.0f) {
+            leading = i;
+            break;
+        }
+    }
+
+    for (int i = 0; i < 11; i++) {
+        struct Pixel pixel = Off;
+        if (led_bar[i] > 0.0f) {
+            if (i == leading) {
+                pixel = led_bar_tip_negative ? pixel_fade_red(led_bar[i]) : pixel_fade(led_bar[i]);
+            } else {
+                pixel = On;
+            }
+        }
+        set_led(41 - i, pixel);
+    }
 }
 
 static void render_signed_int_led_bar(void)
@@ -321,6 +352,24 @@ static struct Pixel pixel_fade(float val){
         .blue = (u8)(50.0 * clamped)
     };
     return pixel;
+}
+
+static struct Pixel pixel_fade_red(float val){
+    float clamped = val < 0.0 ? 0.0 : val > 1.0 ? 1.0 : val;
+    struct Pixel pixel = {
+        .red = (u8)(150.0 * clamped),
+        .green = (u8)(8.0 * clamped),
+        .blue = (u8)(4.0 * clamped)
+    };
+    return pixel;
+}
+
+static struct Pixel matrix_mod_pixel(float mod_value, float signal_value){
+    float mod_magnitude = mod_value < 0.0f ? -mod_value : mod_value;
+    float signal_magnitude = signal_value < 0.0f ? -signal_value : signal_value;
+    float brightness = mod_magnitude * signal_magnitude;
+    float product = mod_value * signal_value;
+    return product < 0.0f ? pixel_fade_red(brightness) : pixel_fade(brightness);
 }
 
 static void render_preset_browser(void)
@@ -413,51 +462,51 @@ void render_leds(void){
 
     if(!poly_mod_active){
         // mod matrix signals
-        set_matrix(0, 0, pixel_fade(lfo * (*(CCs[26].p[0])))); // LFO->OS1
-        set_matrix(0, 1, pixel_fade(lfo * (*(CCs[27].p[0])))); // LFO->PW1
-        set_matrix(0, 2, pixel_fade(lfo * (*(CCs[28].p[0])))); // LFO->VCF
-        set_matrix(0, 3, pixel_fade(lfo * (*(CCs[29].p[0])))); // LFO->OS2
-        set_matrix(0, 4, pixel_fade(lfo * (*(CCs[30].p[0])))); // LFO->PW2
+        set_matrix(0, 0, matrix_mod_pixel(*(CCs[26].p[0]), lfo)); // LFO->OS1
+        set_matrix(0, 1, matrix_mod_pixel(*(CCs[27].p[0]), lfo)); // LFO->PW1
+        set_matrix(0, 2, matrix_mod_pixel(*(CCs[28].p[0]), lfo)); // LFO->VCF
+        set_matrix(0, 3, matrix_mod_pixel(*(CCs[29].p[0]), lfo)); // LFO->OS2
+        set_matrix(0, 4, matrix_mod_pixel(*(CCs[30].p[0]), lfo)); // LFO->PW2
         
-        set_matrix(1, 0, pixel_fade(env * (*(CCs[31].p[0])))); // ENV->OS1 
-        set_matrix(1, 1, pixel_fade(env * (*(CCs[32].p[0])))); // ENV->PW1 
-        set_matrix(1, 2, pixel_fade(env * (*(CCs[33].p[0])))); // ENV->VCF 
-        set_matrix(1, 3, pixel_fade(env * (*(CCs[34].p[0])))); // ENV->OS2 
-        set_matrix(1, 4, pixel_fade(env * (*(CCs[35].p[0])))); // ENV->PW2 
+        set_matrix(1, 0, matrix_mod_pixel(*(CCs[31].p[0]), env)); // ENV->OS1 
+        set_matrix(1, 1, matrix_mod_pixel(*(CCs[32].p[0]), env)); // ENV->PW1 
+        set_matrix(1, 2, matrix_mod_pixel(*(CCs[33].p[0]), env)); // ENV->VCF 
+        set_matrix(1, 3, matrix_mod_pixel(*(CCs[34].p[0]), env)); // ENV->OS2 
+        set_matrix(1, 4, matrix_mod_pixel(*(CCs[35].p[0]), env)); // ENV->PW2 
         
-        set_matrix(2, 0, pixel_fade(*(CCs[36].p[0]))); // NSE->OS1
-        set_matrix(2, 1, pixel_fade(*(CCs[37].p[0]))); // NSE->PW1
-        set_matrix(2, 2, pixel_fade(*(CCs[38].p[0]))); // NSE->VCF
-        set_matrix(2, 3, pixel_fade(*(CCs[39].p[0]))); // NSE->OS2
-        set_matrix(2, 4, pixel_fade(*(CCs[40].p[0]))); // NSE->PW2
+        set_matrix(2, 0, matrix_mod_pixel(*(CCs[36].p[0]), 1.0f)); // NSE->OS1
+        set_matrix(2, 1, matrix_mod_pixel(*(CCs[37].p[0]), 1.0f)); // NSE->PW1
+        set_matrix(2, 2, matrix_mod_pixel(*(CCs[38].p[0]), 1.0f)); // NSE->VCF
+        set_matrix(2, 3, matrix_mod_pixel(*(CCs[39].p[0]), 1.0f)); // NSE->OS2
+        set_matrix(2, 4, matrix_mod_pixel(*(CCs[40].p[0]), 1.0f)); // NSE->PW2
         
-        set_matrix(3, 0, pixel_fade(osc_2 * (*(CCs[41].p[0])))); // OS2->OS1
-        set_matrix(3, 1, pixel_fade(osc_2 * (*(CCs[42].p[0])))); // OS2->PW1
-        set_matrix(3, 2, pixel_fade(osc_2 * (*(CCs[43].p[0])))); // OS2->VCF
+        set_matrix(3, 0, matrix_mod_pixel(*(CCs[41].p[0]), osc_2)); // OS2->OS1
+        set_matrix(3, 1, matrix_mod_pixel(*(CCs[42].p[0]), osc_2)); // OS2->PW1
+        set_matrix(3, 2, matrix_mod_pixel(*(CCs[43].p[0]), osc_2)); // OS2->VCF
     } else {
         // poly mod matrix signals
         float p_mod = *(CCs[62].p[0]);
-        set_matrix(0, 0, pixel_fade(p_mod * lfo * (*(CCs[44].p[0])))); // LFO->OS1
-        set_matrix(0, 1, pixel_fade(p_mod * lfo * (*(CCs[45].p[0])))); // LFO->PW1
-        set_matrix(0, 2, pixel_fade(p_mod * lfo * (*(CCs[46].p[0])))); // LFO->VCF
-        set_matrix(0, 3, pixel_fade(p_mod * lfo * (*(CCs[47].p[0])))); // LFO->OS2
-        set_matrix(0, 4, pixel_fade(p_mod * lfo * (*(CCs[48].p[0])))); // LFO->PW2
+        set_matrix(0, 0, matrix_mod_pixel(*(CCs[44].p[0]), p_mod * lfo)); // LFO->OS1
+        set_matrix(0, 1, matrix_mod_pixel(*(CCs[45].p[0]), p_mod * lfo)); // LFO->PW1
+        set_matrix(0, 2, matrix_mod_pixel(*(CCs[46].p[0]), p_mod * lfo)); // LFO->VCF
+        set_matrix(0, 3, matrix_mod_pixel(*(CCs[47].p[0]), p_mod * lfo)); // LFO->OS2
+        set_matrix(0, 4, matrix_mod_pixel(*(CCs[48].p[0]), p_mod * lfo)); // LFO->PW2
     
-        set_matrix(1, 0, pixel_fade(p_mod * env * (*(CCs[49].p[0])))); // ENV->OS1 
-        set_matrix(1, 1, pixel_fade(p_mod * env * (*(CCs[50].p[0])))); // ENV->PW1 
-        set_matrix(1, 2, pixel_fade(p_mod * env * (*(CCs[51].p[0])))); // ENV->VCF 
-        set_matrix(1, 3, pixel_fade(p_mod * env * (*(CCs[52].p[0])))); // ENV->OS2 
-        set_matrix(1, 4, pixel_fade(p_mod * env * (*(CCs[53].p[0])))); // ENV->PW2 
+        set_matrix(1, 0, matrix_mod_pixel(*(CCs[49].p[0]), p_mod * env)); // ENV->OS1 
+        set_matrix(1, 1, matrix_mod_pixel(*(CCs[50].p[0]), p_mod * env)); // ENV->PW1 
+        set_matrix(1, 2, matrix_mod_pixel(*(CCs[51].p[0]), p_mod * env)); // ENV->VCF 
+        set_matrix(1, 3, matrix_mod_pixel(*(CCs[52].p[0]), p_mod * env)); // ENV->OS2 
+        set_matrix(1, 4, matrix_mod_pixel(*(CCs[53].p[0]), p_mod * env)); // ENV->PW2 
     
-        set_matrix(2, 0, pixel_fade(p_mod * (*(CCs[54].p[0])))); // NSE->OS1
-        set_matrix(2, 1, pixel_fade(p_mod * (*(CCs[55].p[0])))); // NSE->PW1
-        set_matrix(2, 2, pixel_fade(p_mod * (*(CCs[56].p[0])))); // NSE->VCF
-        set_matrix(2, 3, pixel_fade(p_mod * (*(CCs[57].p[0])))); // NSE->OS2
-        set_matrix(2, 4, pixel_fade(p_mod * (*(CCs[58].p[0])))); // NSE->PW2
+        set_matrix(2, 0, matrix_mod_pixel(*(CCs[54].p[0]), p_mod)); // NSE->OS1
+        set_matrix(2, 1, matrix_mod_pixel(*(CCs[55].p[0]), p_mod)); // NSE->PW1
+        set_matrix(2, 2, matrix_mod_pixel(*(CCs[56].p[0]), p_mod)); // NSE->VCF
+        set_matrix(2, 3, matrix_mod_pixel(*(CCs[57].p[0]), p_mod)); // NSE->OS2
+        set_matrix(2, 4, matrix_mod_pixel(*(CCs[58].p[0]), p_mod)); // NSE->PW2
     
-        set_matrix(3, 0, pixel_fade(p_mod * osc_2 * (*(CCs[59].p[0])))); // OS2->OS1
-        set_matrix(3, 1, pixel_fade(p_mod * osc_2 * (*(CCs[60].p[0])))); // OS2->PW1
-        set_matrix(3, 2, pixel_fade(p_mod * osc_2 * (*(CCs[61].p[0])))); // OS2->VCF
+        set_matrix(3, 0, matrix_mod_pixel(*(CCs[59].p[0]), p_mod * osc_2)); // OS2->OS1
+        set_matrix(3, 1, matrix_mod_pixel(*(CCs[60].p[0]), p_mod * osc_2)); // OS2->PW1
+        set_matrix(3, 2, matrix_mod_pixel(*(CCs[61].p[0]), p_mod * osc_2)); // OS2->VCF
     }
 
     // tint the active row

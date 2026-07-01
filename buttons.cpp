@@ -140,8 +140,49 @@ static float get_encoder_step(float step, float mul, int click_multiplier)
 
 void set_param_vals(float *(&vals)[NUM_DSP], float val){
     for(int i=0; i<NUM_DSP; i++){
-        *(vals[i]) = val;
+        if (vals[i] != 0) {
+            *(vals[i]) = val;
+        }
     }
+}
+
+static bool reset_param_selected(void)
+{
+    if(param_selected.button == -1){
+        return false;
+    }
+
+    if(param_selected.alt){
+        struct Alt *alt = &Alts[param_selected.button];
+        if(alt->p[0] != 0){
+            set_param_vals(alt->p, alt->init);
+            return true;
+        }
+        return false;
+    }
+
+    if(param_selected.cc) {
+        struct CC *cc = &CCs[param_selected.button];
+        if(cc->p[0] != 0){
+            if (param_selected.button == CC_NUM_PB_UP) {
+                midi_set_pitch_bend_up((int) roundf(cc->init));
+            } else if (param_selected.button == CC_NUM_PB_DOWN) {
+                midi_set_pitch_bend_down((int) roundf(cc->init));
+            } else {
+                set_param_vals(cc->p, cc->init);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    struct Mod *mod = &Mods[param_selected.button];
+    if(mod->p[0] != 0){
+        set_param_vals(mod->p, mod->init);
+        return true;
+    }
+
+    return false;
 }
 
 void handle_encoder(bool up, u64 now){
@@ -439,6 +480,9 @@ void process_buttons(CTimer *timer){
                             if (ok) {
                                 ui_mode = UI_MODE_PLAY;
                             }
+                        } else if (alt_held()) {
+                            bool ok = reset_param_selected();
+                            CLogger::Get ()->Write (FromButtons, ok ? LogNotice : LogWarning, "reset current parameter result=%u button=%d alt=%u cc=%u", ok ? 1U : 0U, param_selected.button, param_selected.alt ? 1U : 0U, param_selected.cc ? 1U : 0U);
                         } else {
                             *(Signals[0].gate[0]) = 1;
                         }
