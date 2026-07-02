@@ -1,7 +1,6 @@
 TODO:
 - improve colors
-- reset/factory reset chords
-- filter keytracking
+- filter keytracking ?
 
 LAST : 
 - poly mod

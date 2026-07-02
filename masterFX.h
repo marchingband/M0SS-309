@@ -1935,7 +1935,7 @@ void computeMasterFX(MasterFX* dsp, int count, FAUSTFLOAT** RESTRICT inputs, FAU
 			float fTemp171 = dsp->fVec44[(dsp->IOTA0 - min(8192, max(0, (int)(fTemp170)))) & 16383];
 			dsp->fVec45[0] = fTemp171;
 			float fTemp172 = floorf(fTemp170);
-			dsp->fRec89[0] = dsp->fVec45[1] - (fTemp172 + (2.0f - dsp->fRec90[0])) * (dsp->fRec89[1] - fTemp171) / (dsp->fRec90[0] - fTemp172);
+			dsp->fRec89[0] = dsp->fVec45[1] + (fTemp172 + (2.0f - dsp->fRec90[0])) * (fTemp171 - dsp->fRec89[1]) / (dsp->fRec90[0] - fTemp172);
 			dsp->fRec20[0] = dsp->fRec89[0];
 			float fTemp173 = fTemp20 * dsp->fRec20[1] + fTemp33 * fTemp147;
 			float fTemp174 = fTemp9 * fTemp173 - fTemp18 * dsp->fRec5[1];
@@ -1947,7 +1947,7 @@ void computeMasterFX(MasterFX* dsp, int count, FAUSTFLOAT** RESTRICT inputs, FAU
 			float fTemp178 = dsp->fVec46[(dsp->IOTA0 - min(8192, max(0, (int)(fTemp177)))) & 16383];
 			dsp->fVec47[0] = fTemp178;
 			float fTemp179 = floorf(fTemp177);
-			dsp->fRec18[0] = dsp->fVec47[1] - (fTemp179 + (2.0f - dsp->fRec91[0])) * (dsp->fRec18[1] - fTemp178) / (dsp->fRec91[0] - fTemp179);
+			dsp->fRec18[0] = dsp->fVec47[1] + (fTemp179 + (2.0f - dsp->fRec91[0])) * (fTemp178 - dsp->fRec18[1]) / (dsp->fRec91[0] - fTemp179);
 			dsp->fRec16[0] = dsp->fRec18[0];
 			float fTemp180 = dsp->fRec19[1] * fTemp20 + fTemp33 * fTemp154;
 			float fTemp181 = fTemp9 * fTemp180 - fTemp18 * dsp->fRec4[1];
@@ -1998,7 +1998,7 @@ void computeMasterFX(MasterFX* dsp, int count, FAUSTFLOAT** RESTRICT inputs, FAU
 			float fTemp197 = dsp->fVec60[(dsp->IOTA0 - min(8192, max(0, (int)(fTemp196)))) & 16383];
 			dsp->fVec61[0] = fTemp197;
 			float fTemp198 = floorf(fTemp196);
-			dsp->fRec98[0] = dsp->fVec61[1] - (fTemp198 + (2.0f - dsp->fRec99[0])) * (dsp->fRec98[1] - fTemp197) / (dsp->fRec99[0] - fTemp198);
+			dsp->fRec98[0] = dsp->fVec61[1] + (fTemp198 + (2.0f - dsp->fRec99[0])) * (fTemp197 - dsp->fRec98[1]) / (dsp->fRec99[0] - fTemp198);
 			dsp->fRec5[0] = dsp->fRec98[0];
 			dsp->fRec3[0] = fTemp1 * (dsp->fRec4[1] * fTemp9 + fTemp18 * fTemp180) + 0.5f * fTemp0 * dsp->fRec3[1];
 			dsp->fRec1[dsp->IOTA0 & 1023] = dsp->fRec3[0];

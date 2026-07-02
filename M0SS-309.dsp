@@ -215,4 +215,4 @@ with {
     out = audio : vcf : *(env_amp);
 };
 
-process = par(x, 3, voice(x)) :> *(0.12) <:_,_;
+process = par(x, 3, voice(x)) :> *(0.33) <:_,_;
