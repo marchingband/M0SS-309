@@ -295,8 +295,8 @@ void handle_encoder(bool up, u64 now){
     // CLogger::Get ()->Write (FromButtons, LogDebug, "handle_encoder %s", up ? "up" : "down");
     u64 passed = now - last_encoder_click;
     last_encoder_click = now;
-    int click_multiplier = passed > 100000 ? 1 : passed > 50000 ? 4 : passed > 10000 ? 10 : 30;
-    // int click_multiplier = passed > 100000 ? 1 : passed > 50000 ? 100 : passed > 10000 ? 500 : 2000;
+    // int click_multiplier = passed > 100000 ? 1 : passed > 50000 ? 4 : passed > 10000 ? 10 : 30;
+    int click_multiplier = passed > 100000 ? 10 : passed > 50000 ? 100 : passed > 10000 ? 500 : 2000;
     if(param_selected.button == -1){
         return;
     }

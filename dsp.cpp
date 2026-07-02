@@ -7,8 +7,8 @@
 #include "dsp.h"
 #include "logging.h"
 
-#define STEP_DIVISOR 127.0
-// #define STEP_DIVISOR 8192.0
+// #define STEP_DIVISOR 127.0
+#define STEP_DIVISOR 8192.0
 
 #if APP_ENABLE_RUNTIME_DEBUG_LOGS
 static const char FromDSPDebug[] = "DSP dbg";

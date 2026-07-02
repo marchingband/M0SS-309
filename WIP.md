@@ -1,6 +1,9 @@
 TODO:
 - improve colors
 - filter keytracking ?
+- CC map file? per preset?
+- CC map the mod matrix?
+- encoder steps issue
 
 LAST : 
 - poly mod
@@ -17,10 +20,10 @@ LAST :
 - glide
 - display chorus mode
 - stuck notes
+- bi-polar mod matrix
+- mod matrix lights
 
 WIP :
-- bi-polar mod matrix
 
-NEXT :
-- mod matrix lights
+NEXT : encoder steps
 

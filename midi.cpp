@@ -137,10 +137,38 @@ static void apply_mapped_cc(int internal_cc, u8 midi_val)
         return;
     }
 
-    float steps = cc->mul * (float) midi_val;
-    // float steps = cc->mul * (float) midi_val * 64.0;
-    float whole_steps = roundf(steps);
-    float val = (cc->step * whole_steps) + cc->min;
+    float val = 0.0f;
+    if (cc->min < 0.0f && cc->max > 0.0f) {
+        if (midi_val == 64) {
+            val = 0.0f;
+        } else if (midi_val < 64) {
+            float negative_val = midi_val == 0 ? 1.0f : (float) midi_val;
+            val = cc->min * ((64.0f - negative_val) / 63.0f);
+        } else {
+            val = cc->max * (((float) midi_val - 64.0f) / 63.0f);
+        }
+
+        if (cc->step > 0.0f) {
+            float whole_steps = roundf((val - cc->min) / cc->step);
+            val = cc->min + cc->step * whole_steps;
+        }
+    } else {
+        float position = (float) midi_val / 127.0f;
+        if (cc->step > 0.0f) {
+            float steps = ((cc->max - cc->min) / cc->step) * position;
+            float whole_steps = roundf(steps);
+            val = (cc->step * whole_steps) + cc->min;
+        } else {
+            val = cc->min + (cc->max - cc->min) * position;
+        }
+    }
+
+    if (val < cc->min) {
+        val = cc->min;
+    } else if (val > cc->max) {
+        val = cc->max;
+    }
+
     if (internal_cc == CC_NUM_PB_UP) {
         midi_set_pitch_bend_up((int) roundf(val));
         return;

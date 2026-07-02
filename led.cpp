@@ -253,27 +253,28 @@ void update_led_bar(void){
         out = 10.0f;
     }
 
-    int tip = (int) out;
-    float tip_amount = out - (float) tip;
-    if (tip_amount == 0.0f && out > 0.0f) {
-        tip_amount = 1.0f;
+    for(int i=0; i<11; i++){
+        led_bar[i] = 0.0f;
     }
 
-    for(int i=0; i<11; i++){
-        if(i < tip){
-            led_bar[i] = 1.0f;
-        } else if(i == tip){
-            led_bar[i] = tip_amount;
-        } else {
-            led_bar[i] = 0.0f;
-        }
+    led_bar[0] = 1.0f;
+
+    int full_leds = (int) out;
+    float tip_amount = out - (float) full_leds;
+
+    for(int i=1; i<=full_leds && i<11; i++){
+        led_bar[i] = 1.0f;
+    }
+
+    if(tip_amount > 0.0f && full_leds + 1 < 11){
+        led_bar[full_leds + 1] = tip_amount;
     }
 }
 
 static void render_linear_led_bar(void)
 {
     int leading = -1;
-    for (int i = 10; i >= 0; i--) {
+    for (int i = 10; i >= 1; i--) {
         if (led_bar[i] > 0.0f) {
             leading = i;
             break;
@@ -452,21 +453,21 @@ void render_leds(void){
         return;
     }
 
-    set_led(0, *(Sels[8].p[0]) == 2 ? Green : Off); // OSC 2 TRI
-    set_led(1, *(Sels[8].p[0]) == 1 ? Green : Off); // OSC 2 SQR
-    set_led(2, *(Sels[8].p[0]) == 0 ? Green : Off); // OSC 2 SAW
+    set_led(0, *(Sels[8].p[0]) == 2 ? On : Off); // OSC 2 TRI
+    set_led(1, *(Sels[8].p[0]) == 1 ? On : Off); // OSC 2 SQR
+    set_led(2, *(Sels[8].p[0]) == 0 ? On : Off); // OSC 2 SAW
     
-    set_led(3, *(Sels[20].p[0]) ? Red : Off);        // HI-LO
-    set_led(4, *(AltSels[20].p[0]) ? Red : Off);     // KT
-    set_led(5, mono_mode ? Red : Off);              // MONO
-    set_led(6, *(Sels[2].p[0]) ? Red : Off);         // SYNC
+    set_led(3, *(Sels[20].p[0]) ? On : Off);        // HI-LO
+    set_led(4, *(AltSels[20].p[0]) ? On : Off);     // KT
+    set_led(5, mono_mode ? On : Off);              // MONO
+    set_led(6, *(Sels[2].p[0]) ? On : Off);         // SYNC
 
-    set_led(7, *(Sels[28].p[0]) == 0 ? Green : Off); // OSC 1 SAW
-    set_led(8, *(Sels[28].p[0]) == 1 ? Green : Off); // OSC 1 SQR
+    set_led(7, *(Sels[28].p[0]) == 0 ? On : Off); // OSC 1 SAW
+    set_led(8, *(Sels[28].p[0]) == 1 ? On : Off); // OSC 1 SQR
 
-    set_led(9,  *(Sels[4].p[0]) == 0 ? Green : Off); // LFO SAW
-    set_led(10, *(Sels[4].p[0]) == 1 ? Green : Off); // LFO SQR
-    set_led(11, *(Sels[4].p[0]) == 2 ? Green : Off); // LFO TRI
+    set_led(9,  *(Sels[4].p[0]) == 0 ? On : Off); // LFO SAW
+    set_led(10, *(Sels[4].p[0]) == 1 ? On : Off); // LFO SQR
+    set_led(11, *(Sels[4].p[0]) == 2 ? On : Off); // LFO TRI
 
     float lfo = *(Signals[0].lfo);
     // sum all the envelopes
