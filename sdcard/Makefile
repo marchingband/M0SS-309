@@ -19,7 +19,7 @@ BASEURL = https://github.com/raspberrypi/firmware/blob/$(FIRMWARE)/boot
 FILES = LICENCE.broadcom COPYING.linux \
 	bootcode.bin start.elf fixup.dat start4.elf fixup4.dat \
 	start_cd.elf fixup_cd.dat start4cd.elf fixup4cd.dat \
-	bcm2710-rpi-zero-2-w.dtb bcm2710-rpi-cm0.dtb bcm2711-rpi-4-b.dtb bcm2711-rpi-400.dtb bcm2711-rpi-cm4.dtb \
+	bcm2710-rpi-zero-2-w.dtb bcm2711-rpi-4-b.dtb bcm2711-rpi-400.dtb bcm2711-rpi-cm4.dtb \
 	bcm2712-rpi-5-b.dtb bcm2712d0-rpi-5-b.dtb
 
 OVERLAYS = bcm2712d0.dtbo

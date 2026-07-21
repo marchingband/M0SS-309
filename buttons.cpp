@@ -58,6 +58,8 @@ static bool reset_hold_active = false;
 static bool reset_hold_factory = false;
 static u64 reset_hold_started_us = 0;
 static int reset_request = RESET_REQUEST_NONE;
+static int preset_nav_encoder_delta = 0;
+static bool preset_nav_last_bank = false;
 
 static const u64 ResetHoldDurationUs = 2000000ULL;
 
@@ -260,6 +262,30 @@ void handle_encoder(bool up, u64 now){
         return;
     }
 
+    if (ui_mode == UI_MODE_SAVE || ui_mode == UI_MODE_LOAD) {
+        bool bank_nav = alt_held();
+        if (bank_nav != preset_nav_last_bank) {
+            preset_nav_encoder_delta = 0;
+            preset_nav_last_bank = bank_nav;
+        }
+
+        preset_nav_encoder_delta += up ? 1 : -1;
+        if (preset_nav_encoder_delta < 2 && preset_nav_encoder_delta > -2) {
+            return;
+        }
+
+        int delta = preset_nav_encoder_delta > 0 ? 1 : -1;
+        preset_nav_encoder_delta -= delta * 2;
+
+        if (bank_nav) {
+            alt_consumed = true;
+            preset_move_bank_cursor(delta);
+        } else {
+            preset_move_slot_cursor(delta);
+        }
+        return;
+    }
+
     if (midi_channel_adjust_held()) {
         if(up){
             midi_channel += midi_channel < 16;
@@ -279,16 +305,6 @@ void handle_encoder(bool up, u64 now){
     if (pitch_bend_down_adjust_held()) {
         midi_set_pitch_bend_down((int) midi_pitch_bend_down + (up ? 1 : -1));
         midi_config_mark_dirty(now);
-        return;
-    }
-
-    if (ui_mode == UI_MODE_SAVE || ui_mode == UI_MODE_LOAD) {
-        if (alt_held()) {
-            alt_consumed = true;
-            preset_move_bank_cursor(up ? 1 : -1);
-        } else {
-            preset_move_slot_cursor(up ? 1 : -1);
-        }
         return;
     }
 

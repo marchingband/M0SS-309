@@ -1541,28 +1541,28 @@ void initMasterFX(MasterFX* dsp, int sample_rate) {
 
 void buildUserInterfaceMasterFX(MasterFX* dsp, UIGlue* ui_interface) {
 	ui_interface->openVerticalBox(ui_interface->uiInterface, "masterFX");
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider4, "alt-sel", "26");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider4, "alt-sel", "3");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider4, "midi", "70");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "chorus-mode", &dsp->fHslider4, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)3.0f, (FAUSTFLOAT)1.0f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider7, "alt", "15");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider7, "alt", "27");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider7, "midi", "72");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "delay-fb", &dsp->fHslider7, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)1.0f, (FAUSTFLOAT)0.001f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider3, "alt", "27");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider3, "alt", "21");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider3, "midi", "73");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "delay-mix", &dsp->fHslider3, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)0.5f, (FAUSTFLOAT)0.001f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider8, "alt", "3");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider8, "alt", "15");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider8, "midi", "71");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "delay-time", &dsp->fHslider8, (FAUSTFLOAT)1024.0f, (FAUSTFLOAT)1024.0f, (FAUSTFLOAT)65536.0f, (FAUSTFLOAT)0.001f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider5, "alt", "18");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider5, "alt", "0");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider5, "midi", "75");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "reverb-feedback", &dsp->fHslider5, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)1.0f, (FAUSTFLOAT)0.001f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider1, "alt", "0");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider1, "alt", "26");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider1, "midi", "76");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "reverb-mix", &dsp->fHslider1, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)0.0f, (FAUSTFLOAT)1.0f, (FAUSTFLOAT)0.001f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider2, "alt", "21");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider2, "alt", "6");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider2, "midi", "69");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "reverb-size", &dsp->fHslider2, (FAUSTFLOAT)1.0f, (FAUSTFLOAT)0.5f, (FAUSTFLOAT)3.0f, (FAUSTFLOAT)0.001f);
-	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider6, "alt", "6");
+	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider6, "alt", "18");
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider6, "midi", "74");
 	ui_interface->addHorizontalSlider(ui_interface->uiInterface, "reverb-time", &dsp->fHslider6, (FAUSTFLOAT)0.2f, (FAUSTFLOAT)0.1f, (FAUSTFLOAT)1.0f, (FAUSTFLOAT)0.001f);
 	ui_interface->declare(ui_interface->uiInterface, &dsp->fHslider0, "alt", "1");
