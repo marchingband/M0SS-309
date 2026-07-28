@@ -63,6 +63,14 @@ static void QueueMIDIBytes(const u8 *pData, unsigned nLength)
 	s_MIDIQueueLock.Release();
 }
 
+static void ClearMIDIQueue(void)
+{
+	s_MIDIQueueLock.Acquire();
+	s_MIDIQueueHead = 0;
+	s_MIDIQueueTail = 0;
+	s_MIDIQueueLock.Release();
+}
+
 static void ProcessQueuedMIDI(void)
 {
 	while (true) {
@@ -192,6 +200,8 @@ void CKernel::MIDIPacketHandler (unsigned nCable, u8 *pPacket, unsigned nLength)
 
 void CKernel::USBDeviceRemovedHandler (CDevice *pDevice, void *pContext)
 {
+	ClearMIDIQueue();
+	init_midi_parser();
 	s_pKernel->m_Logger.Write (FromKernel, LogNotice, "Lost midi device");
 }
 
@@ -253,17 +263,19 @@ TShutdownMode CKernel::Run (void)
 		// render_leds();
 		read_uart();
 		uart_service();
-		assert (m_pUSB);
-		if (m_pUSB->UpdatePlugAndPlay ()){
-			m_pMIDIDevice = (CUSBMIDIDevice *) CDeviceNameService::Get ()->GetDevice ("umidi1", FALSE);
-			if (m_pMIDIDevice != 0)
-			{
-				m_Logger.Write (FromKernel, LogNotice, "Found midi device");
-				s_pKernel = this;
-				m_pMIDIDevice->RegisterPacketHandler (MIDIPacketHandler);
-				m_pMIDIDevice->RegisterRemovedHandler (USBDeviceRemovedHandler);
+			assert (m_pUSB);
+			if (m_pUSB->UpdatePlugAndPlay ()){
+				m_pMIDIDevice = (CUSBMIDIDevice *) CDeviceNameService::Get ()->GetDevice ("umidi1", FALSE);
+				if (m_pMIDIDevice != 0)
+				{
+					m_Logger.Write (FromKernel, LogNotice, "Found midi device");
+					ClearMIDIQueue();
+					init_midi_parser();
+					s_pKernel = this;
+					m_pMIDIDevice->RegisterPacketHandler (MIDIPacketHandler);
+					m_pMIDIDevice->RegisterRemovedHandler (USBDeviceRemovedHandler);
+				}
 			}
-		}
 		m_RotaryEncoder.Update();
 		// m_Timer.MsDelay(2);
 	}

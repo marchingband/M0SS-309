@@ -90,6 +90,8 @@ eject_target_volume() {
 flash_once() {
     TARGET_VOLUME="$1"
 
+    confirm_target
+
     require_path "$SOURCE_DIR" "source"
     require_path "$TARGET_VOLUME" "target volume"
 
@@ -100,7 +102,6 @@ flash_once() {
 
     [[ "$SOURCE_DIR" != "$TARGET_VOLUME" ]] || die "source and target are the same path"
 
-    confirm_target
     rename_target_volume "$TARGET_VOLUME"
     copy_sd_contents
     eject_target_volume

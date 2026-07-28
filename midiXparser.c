@@ -331,5 +331,20 @@ bool parse(uint8_t readByte) {
 }
 
 void init_midi_parser(void){
+  m_midiMsg[0] = 0;
+  m_midiMsg[1] = 0;
+  m_midiMsg[2] = 0;
+  m_midiMsgRealTime = 0;
+  m_indexMsgLen = 0;
+  m_expectedMsgLen = 0;
+  m_sysExMode = false;
+  m_sysExError = false;
+  m_sysExMsgLen = 0;
+  m_sysExindexMsgLen = 0;
+  m_isByteCaptured = false;
+  m_readByte = 0;
+  m_runningStatusPossible = false;
+  m_midiParsedMsgType = noneMsgTypeMsk;
+  m_midiCurrentMsgType = noneMsgTypeMsk;
   setMidiMsgFilter( channelVoiceMsgTypeMsk );
 }
