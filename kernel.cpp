@@ -238,7 +238,9 @@ TShutdownMode CKernel::Run (void)
 
 	while(1){
 		// main loop
+		midi_service_steals();
 		ProcessQueuedMIDI();
+		midi_service_steals();
 		scan_buttons(&m_Timer);
 		process_buttons(&m_Timer);
 		int reset_request = get_reset_request();

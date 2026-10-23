@@ -23,9 +23,16 @@
 
 static const char FromMidi[] = "Midi";
 
+struct PendingSteal {
+    boolean active;
+    boolean cancelled;
+    uint8_t note;
+};
+
 static uint8_t s_MonoStack[MONO_STACK_SIZE];
 static uint8_t s_VoiceNote[NUM_DSP][NUM_VOICES];
 static u32 s_VoiceAge[NUM_DSP][NUM_VOICES];
+static PendingSteal s_PendingSteal[NUM_DSP][NUM_VOICES];
 static u32 s_NextVoiceAge = 1;
 static int s_MonoHead = 0;  // oldest note
 static int s_MonoTail = 0;  // next free slot
@@ -193,6 +200,9 @@ static void clear_voice_state(void)
         for (u8 voice = 0; voice < NUM_VOICES; voice++) {
             s_VoiceNote[dsp][voice] = VOICE_NOTE_NONE;
             s_VoiceAge[dsp][voice] = 0;
+            s_PendingSteal[dsp][voice].active = FALSE;
+            s_PendingSteal[dsp][voice].cancelled = FALSE;
+            s_PendingSteal[dsp][voice].note = VOICE_NOTE_NONE;
         }
     }
 }
@@ -203,6 +213,9 @@ static void release_all_voices(void)
         for (u8 voice = 0; voice < NUM_VOICES; voice++) {
             if (Signals[dsp].gate[voice] != 0) {
                 *(Signals[dsp].gate[voice]) = 0;
+            }
+            if (Signals[dsp].kill[voice] != 0) {
+                *(Signals[dsp].kill[voice]) = 0;
             }
         }
     }
@@ -238,19 +251,33 @@ static bool voice_is_active(u8 dsp, u8 voice)
     return Signals[dsp].gate[voice] != 0 && *(Signals[dsp].gate[voice]) != 0;
 }
 
+static bool voice_has_pending_steal(u8 dsp, u8 voice)
+{
+    return s_PendingSteal[dsp][voice].active;
+}
+
+static bool voice_is_silent(u8 dsp, u8 voice)
+{
+    if (Signals[dsp].env_amp[voice] == 0) {
+        return true;
+    }
+
+    return *(Signals[dsp].env_amp[voice]) <= VOICE_IDLE_ENV_THRESHOLD;
+}
+
 static bool voice_is_available(u8 dsp, u8 voice)
 {
+    if (voice_has_pending_steal(dsp, voice)) {
+        return false;
+    }
     if (Signals[dsp].gate[voice] == 0) {
         return false;
     }
     if (*(Signals[dsp].gate[voice]) != 0) {
         return false;
     }
-    if (Signals[dsp].env_amp[voice] == 0) {
-        return true;
-    }
 
-    return *(Signals[dsp].env_amp[voice]) <= VOICE_IDLE_ENV_THRESHOLD;
+    return voice_is_silent(dsp, voice);
 }
 
 static bool find_active_voice_for_note(uint8_t note, u8 *dsp_out, u8 *voice_out)
@@ -278,6 +305,9 @@ static void assign_poly_voice(u8 dsp, u8 voice, u8 note)
     s_VoiceAge[dsp][voice] = s_NextVoiceAge++;
     if (Signals[dsp].pitch[voice] != 0) {
         *(Signals[dsp].pitch[voice]) = note;
+    }
+    if (Signals[dsp].kill[voice] != 0) {
+        *(Signals[dsp].kill[voice]) = 0;
     }
     if (Signals[dsp].gate[voice] != 0) {
         *(Signals[dsp].gate[voice]) = 1;
@@ -398,6 +428,9 @@ static bool find_oldest_voice(bool prefer_released, u8 *dsp_out, u8 *voice_out)
             if (voice_is_available(dsp, voice)) {
                 continue;
             }
+            if (voice_has_pending_steal(dsp, voice)) {
+                continue;
+            }
 
             bool released = !voice_is_active(dsp, voice);
             if (released != prefer_released) {
@@ -421,6 +454,56 @@ static bool find_oldest_voice(bool prefer_released, u8 *dsp_out, u8 *voice_out)
     }
 
     return found;
+}
+
+static void start_voice_steal(u8 dsp, u8 voice, u8 note)
+{
+    CLogger::Get ()->Write (FromMidi, LogNotice, "stole voice dsp=%u voice=%u note=%u", dsp, voice, s_VoiceNote[dsp][voice]);
+
+    s_VoiceNote[dsp][voice] = VOICE_NOTE_NONE;
+    s_VoiceAge[dsp][voice] = s_NextVoiceAge++;
+    s_PendingSteal[dsp][voice].active = TRUE;
+    s_PendingSteal[dsp][voice].cancelled = FALSE;
+    s_PendingSteal[dsp][voice].note = note;
+
+    if (Signals[dsp].kill[voice] != 0) {
+        *(Signals[dsp].kill[voice]) = 1;
+        return;
+    }
+
+    assign_poly_voice(dsp, voice, note);
+    s_PendingSteal[dsp][voice].active = FALSE;
+}
+
+void midi_service_steals(void)
+{
+    for (u8 dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (u8 voice = 0; voice < NUM_VOICES; voice++) {
+            PendingSteal *pending = &s_PendingSteal[dsp][voice];
+            if (!pending->active || !voice_is_silent(dsp, voice)) {
+                continue;
+            }
+
+            if (pending->cancelled) {
+                if (Signals[dsp].gate[voice] != 0) {
+                    *(Signals[dsp].gate[voice]) = 0;
+                }
+                if (Signals[dsp].kill[voice] != 0) {
+                    *(Signals[dsp].kill[voice]) = 0;
+                }
+                pending->active = FALSE;
+                pending->cancelled = FALSE;
+                pending->note = VOICE_NOTE_NONE;
+                continue;
+            }
+
+            uint8_t note = pending->note;
+            pending->active = FALSE;
+            pending->cancelled = FALSE;
+            pending->note = VOICE_NOTE_NONE;
+            assign_poly_voice(dsp, voice, note);
+        }
+    }
 }
 
 void handle_note_on(u8 note){
@@ -457,11 +540,7 @@ void handle_note_on(u8 note){
         return;
     }
 
-    CLogger::Get ()->Write (FromMidi, LogNotice, "stole voice dsp=%u voice=%u note=%u", dsp, voice, s_VoiceNote[dsp][voice]);
-    if (Signals[dsp].env_amp[voice] != 0) {
-        *(Signals[dsp].env_amp[voice]) = 0;
-    }
-    assign_poly_voice(dsp, voice, note);
+    start_voice_steal(dsp, voice, note);
 }
 
 void handle_note_off(u8 note){
@@ -480,6 +559,16 @@ void handle_note_off(u8 note){
     u8 voice = 0;
     if (find_active_voice_for_note(note, &dsp, &voice)) {
         release_poly_voice(dsp, voice);
+        return;
+    }
+
+    for (dsp = 0; dsp < NUM_DSP; dsp++) {
+        for (voice = 0; voice < NUM_VOICES; voice++) {
+            if (s_PendingSteal[dsp][voice].active &&
+                s_PendingSteal[dsp][voice].note == note) {
+                s_PendingSteal[dsp][voice].cancelled = TRUE;
+            }
+        }
     }
 }
 

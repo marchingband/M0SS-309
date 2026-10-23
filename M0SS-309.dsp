@@ -6,6 +6,53 @@ log3(n) = n * n * n;
 bipolarLogGain(x) = x * abs(x);
 C4 = 261; // middle C hz
 
+adsrk(at,dt,sl,rt,gate,kill) = baseEnv * K
+with {
+    kt = 0.003;
+    // kt = 0.001;
+
+    an = max(1, at*ma.SR);
+    dn = max(1, dt*ma.SR);
+    rn = max(1, rt*ma.SR);
+    kn = max(1, kt*ma.SR);
+
+    adelta = 1/an;
+    ddelta = (1-sl)/dn;
+
+    // Kill timer
+    ktime = (+(1) : *(kill > 0)) ~ _;
+
+    // Output fade
+    K = ba.if(kill > 0, max(0, 1 - ktime/kn), 1);
+
+    // Reset only after fade is complete.
+    // While reset is high, internal ADSR counters are held at 0.
+    reset = (kill > 0) * (ktime >= kn);
+
+    // Effective gate for retrigger detection.
+    // During reset, gate is forced low.
+    g = gate * (reset <= 0);
+
+    // Attack time:
+    // normal counter, but hard-reset to 0 while reset is active.
+    atime = (+(g) : *(g' >= g) : *(reset <= 0)) ~ _;
+
+    A = atime * adelta;
+
+    D0 = 1 + an * ddelta;
+    D = D0 - atime * ddelta;
+
+    ADS = min(A, max(D, sl));
+
+    // Release time:
+    // normal release counter, but also hard-reset while reset is active.
+    rtime = (+(1) : *(g == 0) : *(reset <= 0)) ~ _;
+
+    R = rtime/rn;
+
+    baseEnv = ADS : *(1-R) : max(0);
+};
+
 envG(x) = hgroup("[0]env_amp",x);
 filEnvG(x) = hgroup("[1]env",x); 
 filG(x) = hgroup("[2]filter",x); 
@@ -134,9 +181,10 @@ voice(x) = out
 with {
     noise   = no.noise;
     gate    = gateG(button("gate_%x"));
+    kill    = gateG(button("kill_%x"));
 
-    env_amp = en.adsr(a,d,s,r,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
-    env     = en.adsr(a_f,d_f,s_f,r_f,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
+    env_amp = adsrk(a,d,s,r,gate,kill) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
+    env     = adsrk(a_f,d_f,s_f,r_f,gate,kill) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
     // env_amp = en.adsr_bias(a,d,s,r,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_amp_%x][hidden:1]", 0 , 1));
     // env     = en.adsr_bias(a_f,d_f,s_f,r_f,0.5,0.5,0.5,1,gate) <: attach(vbargraph("[env_%x][hidden:1]", 0 , 1));
 

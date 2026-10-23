@@ -42,6 +42,7 @@ extern u8 midi_pitch_bend_down;
 void handle_note_on(u8 note);
 void handle_note_off(u8 note);
 void handle_midi_byte(u8 byte);
+void midi_service_steals(void);
 void midi_apply_global_config(void);
 void midi_set_pitch_bend_up(int semitones);
 void midi_set_pitch_bend_down(int semitones);

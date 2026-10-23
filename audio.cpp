@@ -65,7 +65,8 @@ CPDI2S::CPDI2S(CInterruptSystem *pInterrupt, CKY040 *m_RotaryEncoder)
         CLogger::Get ()->Write (FromAudio, LogDebug, "Allocated inBuffers");
     }
     dsp0 = newMasterFX();
-    initMasterFX(dsp0, 48000);
+    // initMasterFX(dsp0, 48000);
+    initMasterFX(dsp0, 44100);
     buildUserInterfaceMasterFX(dsp0, &ui_glue);
 }
 

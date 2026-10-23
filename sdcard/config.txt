@@ -12,6 +12,7 @@
 arm_64bit=0
 kernel=kernel8-32.img
 device_tree=bcm2710-rpi-cm0.dtb
+force_turbo=1
 
 [pi4]
 kernel=kernel7l.img

@@ -68,6 +68,7 @@ struct Asb {
 struct Sigs {
     float *pitch[NUM_VOICES];
     float *gate[NUM_VOICES];
+    float *kill[NUM_VOICES];
     float *lfo;
     float *env[NUM_VOICES];
     float *env_amp[NUM_VOICES];

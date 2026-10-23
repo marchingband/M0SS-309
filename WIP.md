@@ -2,8 +2,8 @@ TODO:
 - improve colors
 - filter keytracking ?
 - CC map file? per preset?
-- CC map the mod matrix?
 - encoder steps issue
+- smooth more params and stress test 
 
 LAST : 
 - poly mod
@@ -23,7 +23,10 @@ LAST :
 - bi-polar mod matrix
 - mod matrix lights
 
-WIP :
+WIP : 
+add kill phase to ADSR for voice stealing to avoid pops. 
+(un-commited changes)
+(published binary v1.1 pre-emptively for user testing)
 
 NEXT : encoder steps
 

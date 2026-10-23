@@ -171,11 +171,15 @@ static void benchmark_dsp_core(unsigned core_index, u32 elapsed_us)
 void extract(const char *name, float *p, float init, float min, float max, float step){
     // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "extract %s", name);
     bool found = false;
+
     const char *pitch_prefix = "freq_";
     size_t pitch_prefix_len = strlen(pitch_prefix);
 
     const char *gate_prefix = "gate_";
     size_t gate_prefix_len = strlen(gate_prefix);
+
+    const char *kill_prefix = "kill_";
+    size_t kill_prefix_len = strlen(kill_prefix);
 
     if (strncmp(name, pitch_prefix, pitch_prefix_len) == 0) // its a pitch
     {
@@ -198,6 +202,19 @@ void extract(const char *name, float *p, float init, float min, float max, float
         if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
                 Signals[cur_core_init].gate[value] = p;
                 CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to gate %d in dsp %d", value, cur_core_init);
+        } else {
+            // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "Invalid number format after 'gate_'");
+        }    
+    }
+
+    if (strncmp(name, kill_prefix, kill_prefix_len) == 0) // its a kill
+    {
+        const char *number_part = name + kill_prefix_len;
+        char *endptr;
+        int value = (int)strtol(number_part, &endptr);
+        if (*endptr == '\0' && value >= 0 && value < NUM_VOICES) {
+                Signals[cur_core_init].kill[value] = p;
+                CLogger::Get ()->Write (FromDSP, LogDebug, "parsed pointer to kill %d in dsp %d", value, cur_core_init);
         } else {
             // CLogger::Get ()->Write (FromVoiceManager, LogDebug, "Invalid number format after 'gate_'");
         }    
