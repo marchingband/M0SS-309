@@ -5,7 +5,7 @@
 
 // Set to 0 to restore normal use of bottom-row LED #10.
 #ifndef TEST_TEMP
-#define TEST_TEMP 1
+#define TEST_TEMP 0
 #endif
 
 struct Pixel {

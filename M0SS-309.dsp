@@ -1,5 +1,6 @@
 import("stdfaust.lib");
 import("variable_osc.lib");
+import("pitch_math.lib");
 
 clamp(low, high, x) = min(max( low, x), high);
 log3(n) = n * n * n;
@@ -162,7 +163,7 @@ pitch_bend_down = hslider("pbend-dn[midi:66]", 2, 0, 12, 1);                    
 pitch_bend_float = (pitch_bend - 8192.0) / 8191.0 : clamp(-1.0, 1.0) ;
 pitch_bend_ratio = ba.if(pitch_bend_float > 0.0, pitch_bend_float * pitch_bend_up, pitch_bend_float * pitch_bend_down) : ba.semi2ratio;
 
-glide = hslider("glide[style:knob][alt:10][midi:64]", 0.001, 0, 0.999, 0.001) : si.smoo;
+glide = hslider("glide[style:knob][alt:10][midi:64]", 0.001, 0, 0.999, 0.001);
 
 // FX start at [midi:69]
 
@@ -217,15 +218,15 @@ with {
     os2_mod = (lfo * _lfo_os2 * LFO_PCH_RC) +    (env * _env_os2 * ENV_PCH_RC) +  (noise * _nse_os2 * NSE_PCH_RC);
     pw2_mod = (lfo * _lfo_pw2 * PW_RC) +         (env * _env_pw2 * PW_RC) +       (noise * _nse_pw2 * PW_RC);
 
-    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : ba.midikey2hz : *(pitch_bend_ratio) : si.smooth(ba.tau2pole(glide));
-    os1_pitch_base = freq * ba.cent2ratio(os1_mod);
+    freq = hslider("freq_%x", 40, 0, 127, 1) + transpose : pitch_math.midikey2hz : *(pitch_bend_ratio) : si.smooth(ba.tau2pole(glide));
+    os1_pitch_base = freq * pitch_math.cent2ratio(os1_mod);
     
-    os2_pitch_ratio = ba.cent2ratio((tune * 100) + dtn); // tune and detune ratio
+    os2_pitch_ratio = pitch_math.cent2ratio((tune * 100) + dtn); // tune and detune ratio
     os2_pitch_tracked = freq * os2_pitch_ratio;
-    transpose_hz = transpose : ba.midikey2hz;
+    transpose_hz = transpose : pitch_math.midikey2hz;
     os2_pitch_untracked = os2_pitch_ratio * (C4 + transpose_hz);
-    // os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
-    os2_pitch_hi = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(ba.cent2ratio(os2_mod));
+    // os2_pitch = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(pitch_math.cent2ratio(os2_mod));
+    os2_pitch_hi = os2_pitch_untracked, os2_pitch_tracked : ba.selectn(2, key_track) : *(pitch_math.cent2ratio(os2_mod));
     os2_pitch_lo = os2_pitch_hi * 2^(-6);
     os2_pitch = os2_pitch_lo, os2_pitch_hi : ba.selectn(2, range);
     
@@ -235,7 +236,7 @@ with {
     keytrack_ratio = freq / 440.0;
     delta = log10(keytrack_ratio) / 3.0;
     ctf_tracked = ctf + delta;
-    vcf_cutoff = ctf_tracked * 2^(vcf_mod / 1200) : clamp(0,1);
+    vcf_cutoff = ctf_tracked * pitch_math.cent2ratio(vcf_mod) : clamp(0,1);
     vcf = ve.korg35LPF(vcf_cutoff, res);
 
     pw_vosc_1 = 1, os1_pw_post : ba.selectn(2, os1_waveform);

@@ -22,11 +22,9 @@ LAST :
 - stuck notes
 - bi-polar mod matrix
 - mod matrix lights
+- optimize faust code with faust_fast_math
 
 WIP : 
-add kill phase to ADSR for voice stealing to avoid pops. 
-(un-commited changes)
-(published binary v1.1 pre-emptively for user testing)
 
 NEXT : encoder steps
 

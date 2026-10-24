@@ -21,8 +21,8 @@
 // #define SAMPLE_RATE	48000
 #define SAMPLE_RATE	44100
 // #define CHUNK_SIZE	512
-// #define CHUNK_SIZE	1024
-#define CHUNK_SIZE	1024 * 2
+#define CHUNK_SIZE	1024
+// #define CHUNK_SIZE	1024 * 2
 // #define CHUNK_SIZE 1024 * 4
 
 class CPDI2S : public CI2SSoundBaseDevice

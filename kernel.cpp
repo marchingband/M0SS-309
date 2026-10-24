@@ -97,7 +97,6 @@ CKernel::CKernel (void)
 	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
 	m_pUSB (new CUSBHCIDevice (&m_Interrupt, &m_Timer, TRUE)), // TRUE: enable plug-and-play
 	m_GPIOManager (&m_Interrupt),
-	// m_RotaryEncoder (KY040_CLK_PIN, KY040_DT_PIN, KY040_SW_PIN, &m_GPIOManager),
 	m_RotaryEncoder (KY040_CLK_PIN, KY040_DT_PIN, KY040_SW_PIN, 0),
 	m_VoiceManger(CMemorySystem::Get ()),
 	m_Serial(&m_Interrupt, false)
