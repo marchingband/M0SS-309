@@ -91,6 +91,7 @@ static void ProcessQueuedMIDI(void)
 
 CKernel::CKernel (void)
 :	
+	// m_CPUThrottle (CPUSpeedMaximum),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
 	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
@@ -238,6 +239,9 @@ TShutdownMode CKernel::Run (void)
 
 	while(1){
 		// main loop
+#if TEST_TEMP
+		service_temperature_led();
+#endif
 		midi_service_steals();
 		ProcessQueuedMIDI();
 		midi_service_steals();

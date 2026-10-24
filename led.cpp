@@ -13,6 +13,27 @@
 #include "mono_mode.h"
 #include "preset_store.h"
 
+#if TEST_TEMP
+#include <circle/cputhrottle.h>
+
+static volatile unsigned temperature_c = 0;
+
+void service_temperature_led(void)
+{
+    static u64 last_update_us = 0;
+    static bool sampled = false;
+    u64 now_us = CTimer::GetClockTicks64();
+    if (sampled && now_us - last_update_us < 1000000ULL) {
+        return;
+    }
+
+    // Read the firmware mailbox from the main loop, outside the audio callback.
+    temperature_c = CCPUThrottle::Get()->GetTemperature();
+    last_update_us = now_us;
+    sampled = true;
+}
+#endif
+
 extern bool poly_mod_active;
 
 // CWS28XXStripe led_strip(SK6812, NUM_LED, 4000000, 0);
@@ -338,6 +359,23 @@ void set_matrix(int row, int column, struct Pixel pixel){
 }
 
 static void set_led(unsigned int idx, struct Pixel pixel){
+#if TEST_TEMP
+    // Bottom-row bar position 10 maps to physical LED 41 - 10.
+    if (idx == 31) {
+        unsigned temp = temperature_c;
+        if (temp > 79) {
+            pixel = Red;
+        } else if (temp >= 78) {
+            pixel = On;
+        } else if (temp >= 75) {
+            pixel = Blue;
+        } else if (temp >= 72) {
+            pixel = Green;
+        } else {
+            pixel = Off;
+        }
+    }
+#endif
     // led_strip.SetLED(idx, pixel.red, pixel.green, pixel.blue);
     assert(led_strip != nullptr);
     led_strip->SetLED(2, idx, pixel.red, pixel.green, pixel.blue);
