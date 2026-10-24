@@ -1,4 +1,5 @@
 TODO:
+- though-zero FM
 - improve colors
 - filter keytracking ?
 - CC map file? per preset?
