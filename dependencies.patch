@@ -1,0 +1,1212 @@
+diff --git a/addon/fatfs/ffconf.h b/addon/fatfs/ffconf.h
+index 4bf3998fe8511cc5cf8b42b5a4d95dd1661723f6..4bc387ffb11dbbd5d475005bddbf71b91a728a85 100644
+--- a/addon/fatfs/ffconf.h
++++ b/addon/fatfs/ffconf.h
+@@ -38,7 +38,7 @@
+ /* This option switches fast seek function. (0:Disable or 1:Enable) */
+ 
+ 
+-#define FF_USE_EXPAND	0
++#define FF_USE_EXPAND	1
+ /* This option switches f_expand function. (0:Disable or 1:Enable) */
+ 
+ 
+diff --git a/addon/sensor/ky040.cpp b/addon/sensor/ky040.cpp
+index 24c040f6c37564fa5564ea8504337888bed249b7..4f3e8f3ec877d06876bbb171d26b0d21a6511c83 100644
+--- a/addon/sensor/ky040.cpp
++++ b/addon/sensor/ky040.cpp
+@@ -88,8 +88,8 @@ CKY040::TEvent CKY040::s_SwitchOutput[SwitchStateUnknown][SwitchEventUnknown] =
+ };
+ 
+ CKY040::CKY040 (unsigned nCLKPin, unsigned nDTPin, unsigned nSWPin, CGPIOManager *pGPIOManager)
+-:	m_CLKPin (nCLKPin, GPIOModeInputPullUp, pGPIOManager),
+-	m_DTPin (nDTPin, GPIOModeInputPullUp, pGPIOManager),
++:	m_CLKPin (nCLKPin, GPIOModeInput, pGPIOManager),
++	m_DTPin (nDTPin, GPIOModeInput, pGPIOManager),
+ 	m_SWPin (nSWPin, GPIOModeInputPullUp, pGPIOManager),
+ 	m_bPollingMode (!pGPIOManager),
+ 	m_bInterruptConnected (FALSE),
+diff --git a/include/circle/machineinfo.h b/include/circle/machineinfo.h
+index 99e275a0639dfb865c08c1f5faf25ad5cefaafa8..74987e14e9e735d055b885f35e6eeddf287019e9 100644
+--- a/include/circle/machineinfo.h
++++ b/include/circle/machineinfo.h
+@@ -48,6 +48,7 @@ enum TMachineModel
+ 	MachineModel400,
+ 	MachineModelCM4,
+ 	MachineModelCM4S,
++	MachineModelCM0,
+ 	MachineModel5,
+ 	MachineModelUnknown
+ };
+diff --git a/include/circle/sound/i2ssoundbasedevice-rp1.h b/include/circle/sound/i2ssoundbasedevice-rp1.h
+index c2371e30ea2673b958575457c7cf77f08e411e9d..eedff36d87e2591a2a41acbed9f65b99ceb4efa8 100644
+--- a/include/circle/sound/i2ssoundbasedevice-rp1.h
++++ b/include/circle/sound/i2ssoundbasedevice-rp1.h
+@@ -24,7 +24,7 @@
+ 	#error Do not include this header file directly!
+ #endif
+ 
+-//#define USE_I2S_SOUND_IRQ
++// #define USE_I2S_SOUND_IRQ
+ 
+ #include <circle/sound/soundbasedevice.h>
+ #include <circle/sound/soundcontroller.h>
+diff --git a/include/circle/sysconfig.h b/include/circle/sysconfig.h
+index 1bdab4de1fc55c1c999429b04965b552625eeb67..c5c0bad580b5ab3f7ab65a35a2728d4c9a118b72 100644
+--- a/include/circle/sysconfig.h
++++ b/include/circle/sysconfig.h
+@@ -121,7 +121,7 @@
+ // WARNING: Do not feed voltage into these GPIO pins with this option
+ //          defined on a RPi Zero, because this may destroy the pins.
+ 
+-//#define USE_PWM_AUDIO_ON_ZERO
++#define USE_PWM_AUDIO_ON_ZERO
+ 
+ // The left PWM audio output pin is by default GPIO12. The following
+ // define moves it to GPIO18.
+@@ -155,7 +155,7 @@
+ // single core applications, because this may slow down the system
+ // because multiple cores may compete for bus time without use.
+ 
+-//#define ARM_ALLOW_MULTI_CORE
++// #define ARM_ALLOW_MULTI_CORE
+ 
+ #endif
+ 
+@@ -370,7 +370,7 @@
+ // applications you should just not use the CScreenDevice class instead
+ // and direct the logger output to CSerialDevice or CNullDevice.
+ 
+-//#define SCREEN_HEADLESS
++#define SCREEN_HEADLESS
+ 
+ // USE_LOG_COLORS enables the use of different ANSI colors for different
+ // severities in the system log (bright red for LogPanic, bright magenta
+diff --git a/include/circle/usb/dwhcidevice.h b/include/circle/usb/dwhcidevice.h
+index 6d28059fe0f3646d7d72ddea7ce161ee7918b816..405e4f5434bdb2a76b7abef651ef8f6a190132f1 100644
+--- a/include/circle/usb/dwhcidevice.h
++++ b/include/circle/usb/dwhcidevice.h
+@@ -124,6 +124,7 @@ private:
+ 			    unsigned	    nMsTimeout);
+ 
+ 	void LogTransactionFailed (u32 nStatus);
++	void CompleteRequest (CUSBRequest *pURB);
+ 
+ #ifndef NDEBUG
+ 	void DumpRegister (const char *pName, u32 nAddress);
+diff --git a/include/circle/usb/usbmidihost.h b/include/circle/usb/usbmidihost.h
+index 43fd89b9742b5239cc2a0c5dbd0ef92f11cdf5c2..33773be9d9384e65be561bbf4312226c7a23c95e 100644
+--- a/include/circle/usb/usbmidihost.h
++++ b/include/circle/usb/usbmidihost.h
+@@ -56,7 +56,9 @@ private:
+ 	CUSBEndpoint *m_pEndpointOut;
+ 
+ 	u16 m_usBufferSize;
+-	u8 *m_pPacketBuffer;
++	static const unsigned RXBufferCount = 2;
++	u8 *m_pPacketBuffer[RXBufferCount];
++	unsigned m_nNextBuffer;
+ 
+ 	TKernelTimerHandle m_hTimer;
+ };
+diff --git a/include/circle/usb/usbrequest.h b/include/circle/usb/usbrequest.h
+index 648c676a0d14db9b459ed782861b513e4450bd4a..7923ac4fd7c543c1e1ca8595a2435bfa6cf41fbc 100644
+--- a/include/circle/usb/usbrequest.h
++++ b/include/circle/usb/usbrequest.h
+@@ -63,6 +63,10 @@ public:
+ 	// do not retry if request cannot be served immediately (for Bulk in only)
+ 	void SetCompleteOnNAK (void);
+ 	boolean IsCompleteOnNAK (void) const;
++
++	// complete from the primary USB interrupt path, if the host driver supports it
++	void SetCompleteImmediately (void);
++	boolean IsCompleteImmediately (void) const;
+ 	
+ private:
+ 	CUSBEndpoint *m_pEndpoint;
+@@ -83,6 +87,7 @@ private:
+ 	void *m_pCompletionContext;
+ 
+ 	boolean m_bCompleteOnNAK;
++	boolean m_bCompleteImmediately;
+ 
+ 	DECLARE_CLASS_ALLOCATOR
+ };
+diff --git a/lib/machineinfo.cpp b/lib/machineinfo.cpp
+index 66fbe8ec0e8c98a50194e1a8df0977544a5cd362..0c6b5d09ddd9c6b242bc70d8cd915d1d2c507579 100644
+--- a/lib/machineinfo.cpp
++++ b/lib/machineinfo.cpp
+@@ -80,6 +80,7 @@ s_NewInfo[]
+ 	{19, MachineModel400,		4},
+ 	{20, MachineModelCM4,		4},
+ 	{21, MachineModelCM4S,		4},
++	{27, MachineModelCM0,		3},
+ 	{23, MachineModel5,		5}
+ };
+ 
+@@ -105,6 +106,7 @@ static const char *s_MachineName[] =		// must match TMachineModel
+ 	"Raspberry Pi 400",
+ 	"Compute Module 4",
+ 	"Compute Module 4S",
++	"Compute Module Zero",
+ 	"Raspberry Pi 5",
+ 	"Unknown"
+ };
+@@ -141,6 +143,7 @@ static unsigned s_ActLEDInfo[] =		// must match TMachineModel
+ 	42,				// 400
+ 	42,				// CM4
+ 	0 | ACTLED_VIRTUAL_PIN,		// CM4S
++	29 | ACTLED_ACTIVE_LOW,		// CM0
+ 	9 | ACTLED_ACTIVE_LOW,		// 5	 (at GPIO chip #2)
+ 
+ 	ACTLED_UNKNOWN			// Unknown
+@@ -443,6 +446,7 @@ unsigned CMachineInfo::GetGPIOPin (TGPIOVirtualPin Pin) const
+ 		if (   m_MachineModel == MachineModelZero
+ 		    || m_MachineModel == MachineModelZeroW
+ 		    || m_MachineModel == MachineModelZero2W
++		    || m_MachineModel == MachineModelCM0
+ 		    || m_MachineModel == MachineModel5)
+ 		{
+ #if defined (USE_GPIO18_FOR_LEFT_PWM_ON_ZERO) || defined (USE_GPIO18_FOR_LEFT_PWM)
+@@ -474,6 +478,7 @@ unsigned CMachineInfo::GetGPIOPin (TGPIOVirtualPin Pin) const
+ 		if (   m_MachineModel == MachineModelZero
+ 		    || m_MachineModel == MachineModelZeroW
+ 		    || m_MachineModel == MachineModelZero2W
++		    || m_MachineModel == MachineModelCM0
+ 		    || m_MachineModel == MachineModel5)
+ 		{
+ #if defined (USE_GPIO19_FOR_RIGHT_PWM_ON_ZERO) || defined (USE_GPIO19_FOR_RIGHT_PWM)
+@@ -582,6 +587,7 @@ boolean CMachineInfo::ArePWMChannelsSwapped (void) const
+ 	       && m_MachineModel != MachineModelZero
+ 	       && m_MachineModel != MachineModelZeroW
+ 	       && m_MachineModel != MachineModelZero2W
++	       && m_MachineModel != MachineModelCM0
+ 	       && m_MachineModel != MachineModel5;
+ }
+ 
+diff --git a/lib/sound/i2ssoundbasedevice.cpp b/lib/sound/i2ssoundbasedevice.cpp
+index d38682dae9c588110356421c22bd128adbc28e3e..06d3891f2dc6894122b99c1b17bdec1322d56839 100644
+--- a/lib/sound/i2ssoundbasedevice.cpp
++++ b/lib/sound/i2ssoundbasedevice.cpp
+@@ -431,17 +431,19 @@ boolean CI2SSoundBaseDevice::ControllerFactory (void)
+ 		return TRUE;
+ 	}
+ 
+-	// PCM512x
+-	m_pController = new CPCM512xSoundController (m_pI2CMaster, m_ucI2CAddress);
+-	assert (m_pController);
+-
+-	if (m_pController->Probe ())
+-	{
+-		return TRUE;
+-	}
+-
+-	delete m_pController;
+-	m_pController = nullptr;
++	// PCM512x 
++	// *** comment out all this PCM stuff to use WM8960 etc.
++	// m_pController = new CPCM512xSoundController (m_pI2CMaster, m_ucI2CAddress);
++	// assert (m_pController);
++	
++	// if (m_pController->Probe ())
++	// {
++	// 	return TRUE;
++	// }
++	
++	// delete m_pController;
++	// m_pController = nullptr;
++	// *** comment out all this PCM stuff to use WM8960 etc.
+ 
+ 	// WM8960
+ 	m_pController = new CWM8960SoundController (m_pI2CMaster, m_ucI2CAddress,
+diff --git a/lib/sound/wm8960soundcontroller.cpp b/lib/sound/wm8960soundcontroller.cpp
+index 26182ab9114f85e6b0ad37984fcfbabf58f0977b..22afbde1c926e9205a300cfdb375bf9060de240d 100644
+--- a/lib/sound/wm8960soundcontroller.cpp
++++ b/lib/sound/wm8960soundcontroller.cpp
+@@ -19,6 +19,7 @@
+ //
+ #include <circle/sound/wm8960soundcontroller.h>
+ #include <assert.h>
++#include <circle/logger.h>
+ 
+ CWM8960SoundController::CWM8960SoundController (CI2CMaster *pI2CMaster, u8 uchI2CAddress,
+ 						unsigned nSampleRate,
+@@ -33,86 +34,230 @@ CWM8960SoundController::CWM8960SoundController (CI2CMaster *pI2CMaster, u8 uchI2
+ 	assert (m_bOutSupported || m_bInSupported);
+ }
+ 
++// wm8988_register
++
+ boolean CWM8960SoundController::Probe (void)
+ {
+-	// Originally based on https://github.com/RASPIAUDIO/ULTRA/blob/main/ultra.c
+-	// Licensed under GPLv3
++
++	CLogger::Get ()->Write ("WM8988", LogNotice, "Begin initialize codec on i2c bus");
+ 
+ 	// Reset
+-	if (!WriteReg (15, 0x000))
++	if (!WriteReg (0x0f, 0x000))
+ 	{
++		CLogger::Get ()->Write ("WM8988", LogError, "RESET CMD failed");
+ 		return FALSE;
+ 	}
+ 
+-	// Power Management
+-	if (   !WriteReg (25, m_bInSupported ? 0x1FC : 0x1C0)
+-	    || !WriteReg (26, m_bOutSupported ? 0x1F9 : 0x001)
+-	    || !WriteReg (47,   (m_bInSupported ? 0x030 : 0x000)
+-			      | (m_bOutSupported ? 0x00C : 0x000)))
+-	{
++	// send left value, then right with update command
++
++	if (
++		// POWER
++	    !WriteReg (0x19, 0xFC) // power on everything, clock on
++	    || !WriteReg (0x1A, 0x198) // power on everything EXCEPT OUT1
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "POWER CMD failed");
+ 		return FALSE;
+ 	}
+ 
+-	// Clocking / PLL
+-	if (m_nSampleRate == 44100)
+-	{
+-		if (   !WriteReg (4, 0x005)
+-		    || !WriteReg (52, 0x037)
+-		    || !WriteReg (53, 0x086)
+-		    || !WriteReg (54, 0x0C2)
+-		    || !WriteReg (55, 0x026))
+-		{
+-			return FALSE;
+-		}
++	if (
++		// IFACE
++	    // !WriteReg (0x07, 0x4A) // master, i2s, 24 bit
++	    // !WriteReg (0x07, 0x49) // master, left justified, 24 bit
++	    !WriteReg (0x07, 0xA) // slave, i2s, 24 bit
++		// SRATE
++	    || !WriteReg (0x08, 0x41) // 0b001000001 = divide by 2, usb mode, 250 divider = 48khz
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "IFACE/SRATE CMD failed");
++		return FALSE;
+ 	}
+-	else if (m_nSampleRate == 48000)
+-	{
+-		if (   !WriteReg (4, 0x005)
+-		    || !WriteReg (52, 0x038)
+-		    || !WriteReg (53, 0x031)
+-		    || !WriteReg (54, 0x026)
+-		    || !WriteReg (55, 0x0E8))
+-		{
+-			return FALSE;
+-		}
++
++	// LCOMEN (4.7uF resistor common mode feedback)
++	if (
++	    !WriteReg (0x18, 0x100) // LCOMEN on 
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "LCOMEN CMD failed");
++		return FALSE;
+ 	}
+-	else
+-	{
++
++	// ADC Signal Path Control
++	if (
++	    !WriteReg (0x20, 0x30) || // LIN1, +30db
++	    !WriteReg (0x21, 0x30) // RIN1, +30db
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "ADC Signal Path Control CMD failed");
+ 		return FALSE;
+ 	}
+ 
+-	if (   !WriteReg (5, 0x000)	// ADC and DAC Control
+-	    || !WriteReg (7, 0x00A)	// Audio Interface
+-	    || !WriteReg (20, 0x0F9))	// Noise control
+-	{
++	if (
++		// PGA
++	    // !WriteReg (0x00, 0x17) || // unmute, 0db
++	    // !WriteReg (0x01, 0x17 | 0x100) // unmute, 0db
++	    !WriteReg (0x00, 0x3f) || // unmute, +30db
++	    !WriteReg (0x01, 0x3f | 0x100) // unmute, +30db
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "PGA CMD failed");
+ 		return FALSE;
+ 	}
+ 
+-	// Volume
+-	if (   !WriteReg (2, 0x179)	// OUT1 L (Headphone) 0 dB
+-	    || !WriteReg (3, 0x179)	// OUT1 R (Headphone) 0 dB
+-	    || !WriteReg (40, 0x179)	// Speaker L 0 dB
+-	    || !WriteReg (41, 0x179)	// Speaker R 0 dB
+-	    || !WriteReg (51, 0x08D)	// Speaker Boost
+-	    || !WriteReg (0, 0x100 | m_uchInVolume[0])	// Input L
+-	    || !WriteReg (1, 0x100 | m_uchInVolume[1]))	// Input R
+-	{
++	if (
++		// MIXER
++	    // !WriteReg (0x22, 0x100) || // connect left DAC to LOUT
++	    // !WriteReg (0x25, 0x100)  // connect right DAC to ROUT
++	    // !WriteReg (0x22, 0x180) || // connect left DAC to LOUT add LMIXSEL +6db
++	    // !WriteReg (0x25, 0x180)  // connect right DAC to ROUT add LMIXSEL +6db
++	    !WriteReg (0x22, 0x1A3) || // connect left PGA to LOUT add LMIXSEL +0db
++	    !WriteReg (0x25, 0x1A3)  // connect right PGA to ROUT add LMIXSEL +0db
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "mixer CMD failed");
+ 		return FALSE;
+ 	}
+ 
+-	// Inputs / Outputs
+-	if (   !WriteReg (32, 0x138)	// ADCL Signal Path
+-	    || !WriteReg (33, 0x138)	// ADCR Signal Path
+-	    || !WriteReg (49, 0x0F7)	// Speaker Control
+-	    || !WriteReg (34, 0x100)	// Left Out Mix
+-	    || !WriteReg (37, 0x100))	// Right Out Mix
+-	{
++	if (
++		// ADC gain   
++		!WriteReg (0x15, 0xc3) // LADCVOL 0db
++		|| !WriteReg (0x16, 0xc3 | 0x100) // RADCVOL 0db
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "ADC GAIN CMD failed");
+ 		return FALSE;
+ 	}
+ 
++	if (
++		// DAC gain   
++		!WriteReg (0x0a, 0xFF) // LDACVOL 0db
++	    || !WriteReg (0x0b, 0xFF | 0x100) // RDACVOL 0db
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "DAC GAIN CMD failed");
++		return FALSE;
++	}
++
++	if (
++		// DRIVER 1 gain
++	    !WriteReg (0x02, 0x00) // LOUT1VOL mute
++	    || !WriteReg (0x03, 0x00 | 0x100) // ROUT1VOL mute
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "DRIVER 1 GAIN CMD failed");
++		return FALSE;
++	}
++
++	if (
++		// DRIVER 2 gain
++	    !WriteReg (0x28, 0x79) // LOUT2VOL 0db without zero-crossing
++	    || !WriteReg (0x29, 0x79 | 0x100) // ROUT2VOL 0db
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "DRIVER 2 GAIN CMD failed");
++		return FALSE;
++	}
++
++	if (
++		// INPUT DRIVER gain and mute
++	    !WriteReg (0x00, 0x17 | 0x100) // LINVOL 0db unmute, no zer0-crossing
++	    || !WriteReg (0x01, 0x17 | 0x100) // RINVOL 0db unmute, no zer0-crossing
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "INPUT DRIVER GAIN CMD failed");
++		return FALSE;
++	}
++
++	if (
++		// ADC and DAC mute
++	    !WriteReg (0x05, 0x0)
++	    // !WriteReg (0x05, 0x180) // 6db pads on IO
++	){
++		CLogger::Get ()->Write ("WM8988", LogError, "ADC and DAC unmute CMD failed");
++		return FALSE;
++	}
++
++	CLogger::Get ()->Write ("WM8988", LogNotice, "All codec commands succeeded");
+ 	return TRUE;
+ }
+ 
++/* ------------------------------------------ */
++/* THIS IS THE ORIGINAL DRIVER PROBE FUNCTION */
++/* THIS IS THE ORIGINAL DRIVER PROBE FUNCTION */
++/* THIS IS THE ORIGINAL DRIVER PROBE FUNCTION */
++/* ------------------------------------------ */
++
++// boolean CWM8960SoundController::Probe (void)
++// {
++// 	// Originally based on https://github.com/RASPIAUDIO/ULTRA/blob/main/ultra.c
++// 	// Licensed under GPLv3
++
++// 	// Reset
++// 	if (!WriteReg (15, 0x000))
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Power Management
++// 	if (   !WriteReg (25, m_bInSupported ? 0x1FC : 0x1C0)
++// 	    || !WriteReg (26, m_bOutSupported ? 0x1F9 : 0x001)
++// 	    || !WriteReg (47,   (m_bInSupported ? 0x030 : 0x000)
++// 			      | (m_bOutSupported ? 0x00C : 0x000)))
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Clocking / PLL
++// 	if (m_nSampleRate == 44100)
++// 	{
++// 		if (   !WriteReg (4, 0x005)
++// 		    || !WriteReg (52, 0x037)
++// 		    || !WriteReg (53, 0x086)
++// 		    || !WriteReg (54, 0x0C2)
++// 		    || !WriteReg (55, 0x026))
++// 		{
++// 			return FALSE;
++// 		}
++// 	}
++// 	else if (m_nSampleRate == 48000)
++// 	{
++// 		if (   !WriteReg (4, 0x005)
++// 		    || !WriteReg (52, 0x038)
++// 		    || !WriteReg (53, 0x031)
++// 		    || !WriteReg (54, 0x026)
++// 		    || !WriteReg (55, 0x0E8))
++// 		{
++// 			return FALSE;
++// 		}
++// 	}
++// 	else
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	if (   !WriteReg (5, 0x000)	// ADC and DAC Control
++// 	    || !WriteReg (7, 0x00A)	// Audio Interface
++// 	    || !WriteReg (20, 0x0F9))	// Noise control
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Volume
++// 	if (   !WriteReg (2, 0x179)	// OUT1 L (Headphone) 0 dB
++// 	    || !WriteReg (3, 0x179)	// OUT1 R (Headphone) 0 dB
++// 	    || !WriteReg (40, 0x179)	// Speaker L 0 dB
++// 	    || !WriteReg (41, 0x179)	// Speaker R 0 dB
++// 	    || !WriteReg (51, 0x08D)	// Speaker Boost
++// 	    || !WriteReg (0, 0x100 | m_uchInVolume[0])	// Input L
++// 	    || !WriteReg (1, 0x100 | m_uchInVolume[1]))	// Input R
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Inputs / Outputs
++// 	// if (   !WriteReg (32, 0x138)	// ADCL Signal Path
++// 	    // || !WriteReg (33, 0x138)	// ADCR Signal Path
++// 	if (   !WriteReg (32, 0x108)	// ADCL Signal Path, boost gain 0db / 0b 1 0000 1000 // page 21
++// 	    || !WriteReg (33, 0x108)	// ADCR Signal Path
++// 	    || !WriteReg (49, 0x0F7)	// Speaker Control
++// 	    || !WriteReg (34, 0x100)	// Left Out Mix
++// 	    || !WriteReg (37, 0x100))	// Right Out Mix
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	return TRUE;
++// }
++
+ boolean CWM8960SoundController::EnableJack (TJack Jack)
+ {
+ 	switch (Jack)
+@@ -327,3 +472,348 @@ boolean CWM8960SoundController::WriteReg (u8 nReg, u16 nValue)
+ 	assert (m_uchI2CAddress);
+ 	return m_pI2CMaster->Write (m_uchI2CAddress, Cmd, sizeof Cmd) == sizeof Cmd;
+ }
++
++// //
++// // wm8960soundcontroller.cpp
++// //
++// // Circle - A C++ bare metal environment for Raspberry Pi
++// // Copyright (C) 2022-2024  R. Stange <rsta2@o2online.de>
++// //
++// // This program is free software: you can redistribute it and/or modify
++// // it under the terms of the GNU General Public License as published by
++// // the Free Software Foundation, either version 3 of the License, or
++// // (at your option) any later version.
++// //
++// // This program is distributed in the hope that it will be useful,
++// // but WITHOUT ANY WARRANTY; without even the implied warranty of
++// // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++// // GNU General Public License for more details.
++// //
++// // You should have received a copy of the GNU General Public License
++// // along with this program.  If not, see <http://www.gnu.org/licenses/>.
++// //
++// #include <circle/sound/wm8960soundcontroller.h>
++// #include <assert.h>
++
++// CWM8960SoundController::CWM8960SoundController (CI2CMaster *pI2CMaster, u8 uchI2CAddress,
++// 						unsigned nSampleRate,
++// 						boolean bOutSupported, boolean bInSupported)
++// :	m_pI2CMaster (pI2CMaster),
++// 	m_uchI2CAddress (uchI2CAddress ? uchI2CAddress : 0x1A),
++// 	m_nSampleRate (nSampleRate),
++// 	m_bOutSupported (bOutSupported),
++// 	m_bInSupported (bInSupported),
++// 	m_uchInVolume {0x17, 0x17}		// 0 dB
++// {
++// 	assert (m_bOutSupported || m_bInSupported);
++// }
++
++// boolean CWM8960SoundController::Probe (void)
++// {
++// 	// Originally based on https://github.com/RASPIAUDIO/ULTRA/blob/main/ultra.c
++// 	// Licensed under GPLv3
++
++// 	// Reset
++// 	if (!WriteReg (15, 0x000))
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Power Management
++// 	// if (   !WriteReg (25, m_bInSupported ? 0x1FC : 0x1C0)
++// 	    // || !WriteReg (26, m_bOutSupported ? 0x1F9 : 0x001)
++// 	    // || !WriteReg (47,   (m_bInSupported ? 0x030 : 0x000)
++// 		// 	      | (m_bOutSupported ? 0x00C : 0x000)))
++// 	if (   !WriteReg (25, 0xFC)  // 0b0 1111 1100 // 50k VMID
++// 	    || !WriteReg (26, 0x1F9)  // 0b1 1111 1001
++// 	    || !WriteReg (47, 0x03C)) // 0b  0011 1100
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Clocking / PLL
++// 	if (m_nSampleRate == 44100)
++// 	{
++// 		if (   !WriteReg (4, 0x005)
++// 		    || !WriteReg (52, 0x037)
++// 		    || !WriteReg (53, 0x086)
++// 		    || !WriteReg (54, 0x0C2)
++// 		    || !WriteReg (55, 0x026))
++// 		{
++// 			return FALSE;
++// 		}
++// 	}
++// 	else if (m_nSampleRate == 48000)
++// 	{
++// 		if (   !WriteReg (4, 0x005)
++// 		    || !WriteReg (52, 0x038)
++// 		    || !WriteReg (53, 0x031)
++// 		    || !WriteReg (54, 0x026)
++// 		    || !WriteReg (55, 0x0E8))
++// 		{
++// 			return FALSE;
++// 		}
++// 	}
++// 	else
++// 	{
++// 		return FALSE;
++// 	}
++
++// /*
++
++// page 67
++
++// */
++
++
++// 	if (   !WriteReg (5, 0x000)	// ADC and DAC Control 	0b 0000 0000 // page 26
++// 	    || !WriteReg (7, 0x00A)	// Audio Interface  	0b 0000 1010 // page 52
++// 	    // || !WriteReg (20, 0x0F9))	// Noise control 	0b 1111 1001 // page 30
++// 	    || !WriteReg (20, 0x000))	// Noise control off
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Volume
++// 	if (   !WriteReg (2, 0x179)	// OUT1 L (Headphone) 0 dB 	0b 0111 1001 // page 68
++// 	    || !WriteReg (3, 0x179)	// OUT1 R (Headphone) 0 dB
++// 	    || !WriteReg (40, 0x179)	// Speaker L 0 dB
++// 	    || !WriteReg (41, 0x179)	// Speaker R 0 dB
++// 	    || !WriteReg (51, 0x08D)	// Speaker Boost		0b 1000 1101 // page 39
++// 	    || !WriteReg (0, 0x117)	// Input L
++// 	    || !WriteReg (1, 0x117))	// Input R
++// 	    // || !WriteReg (0, 0x100 | m_uchInVolume[0])	// Input L
++// 	    // || !WriteReg (1, 0x100 | m_uchInVolume[1]))	// Input R
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	// Inputs / Outputs
++// 	if (   !WriteReg (32, 0x138)	// ADCL Signal Path / 0b 1 0011 1000 // page 21
++// 	    || !WriteReg (33, 0x138)	// ADCR Signal Path
++// 	// if (   !WriteReg (32, 0x108)	// ADCL Signal Path, boost gain 0db / 0b 1 0000 1000 // page 21
++// 	    // || !WriteReg (33, 0x108)	// ADCR Signal Path, boost gain 0db
++// 	    || !WriteReg (49, 0x0F7)	// Speaker Control 0b 1111 0111 // page 41
++// 	    || !WriteReg (34, 0x100)	// Left Out Mix
++// 	    || !WriteReg (37, 0x100))	// Right Out Mix
++// 	{
++// 		return FALSE;
++// 	}
++
++// 	return TRUE;
++// }
++
++// boolean CWM8960SoundController::EnableJack (TJack Jack)
++// {
++// 	switch (Jack)
++// 	{
++// 	case JackSpeaker:
++// 		return WriteReg (49, 0x0F7);	// Speaker Control
++
++// 	case JackDefaultOut:
++// 	case JackLineOut:
++// 	case JackHeadphone:
++// 	case JackDefaultIn:
++// 	case JackMicrophone:
++// 		return TRUE;
++
++// 	default:
++// 		break;
++// 	}
++
++// 	return FALSE;
++// }
++
++// // Headphone jack cannot be disabled
++// boolean CWM8960SoundController::DisableJack (TJack Jack)
++// {
++// 	if (Jack == JackSpeaker)
++// 	{
++// 		return WriteReg (49, 0x037);	// Speaker Control
++// 	}
++
++// 	return FALSE;
++// }
++
++// const CSoundController::TControlInfo CWM8960SoundController::GetControlInfo (TControl Control,
++// 									     TJack Jack,
++// 									     TChannel Channel) const
++// {
++// 	switch (Control)
++// 	{
++// 	case ControlMute:
++// 		if (IsInputJack (Jack))
++// 		{
++// 			return { TRUE, 0, 1 };
++// 		}
++// 		break;
++
++// 	case ControlVolume:
++// 		if (IsInputJack (Jack))
++// 		{
++// 			return { TRUE, -17, 30 };
++// 		}
++// 		else
++// 		{
++// 			return { TRUE, -73, 6 };
++// 		}
++// 		break;
++
++// 	case ControlALC:
++// 		if (   IsInputJack (Jack)
++// 		    && Channel == ChannelAll)
++// 		{
++// 			return { TRUE, 0, 1 };
++// 		}
++// 		break;
++
++// 	default:
++// 		break;
++// 	}
++
++// 	return { FALSE, 0, 0 };
++// }
++
++// boolean CWM8960SoundController::SetControl (TControl Control, TJack Jack, TChannel Channel, int nValue)
++// {
++// 	switch (Control)
++// 	{
++// 	case ControlMute:
++// 		if (IsInputJack (Jack))
++// 		{
++// 			if (   Channel == ChannelLeft
++// 			    || Channel == ChannelAll)
++// 			{
++// 				m_uchInVolume[0] &= 0x3F;
++// 				m_uchInVolume[0] |= nValue ? 0x80 : 0x00;
++
++// 				if (!WriteReg (0, 0x100 | m_uchInVolume[0]))
++// 				{
++// 					return FALSE;
++// 				}
++// 			}
++
++// 			if (   Channel == ChannelRight
++// 			    || Channel == ChannelAll)
++// 			{
++// 				m_uchInVolume[1] &= 0x3F;
++// 				m_uchInVolume[1] |= nValue ? 0x80 : 0x00;
++
++// 				if (!WriteReg (1, 0x100 | m_uchInVolume[1]))
++// 				{
++// 					return FALSE;
++// 				}
++// 			}
++
++// 			return TRUE;
++// 		}
++// 		break;
++
++// 	case ControlVolume:
++// 		if (IsInputJack (Jack))
++// 		{
++// 			if (!(-17 <= nValue && nValue <= 30))
++// 			{
++// 				return FALSE;
++// 			}
++
++// 			u8 uchValue = (nValue + 17) * 100 / 75;
++
++// 			if (   Channel == ChannelLeft
++// 			    || Channel == ChannelAll)
++// 			{
++// 				m_uchInVolume[0] &= 0x80;
++// 				m_uchInVolume[0] |= uchValue;
++
++// 				if (!WriteReg (0, 0x100 | m_uchInVolume[0]))
++// 				{
++// 					return FALSE;
++// 				}
++// 			}
++
++// 			if (   Channel == ChannelRight
++// 			    || Channel == ChannelAll)
++// 			{
++// 				m_uchInVolume[1] &= 0x80;
++// 				m_uchInVolume[1] |= uchValue;
++
++// 				if (!WriteReg (1, 0x100 | m_uchInVolume[1]))
++// 				{
++// 					return FALSE;
++// 				}
++// 			}
++
++// 			return TRUE;
++// 		}
++// 		else
++// 		{
++// 			if (!(-73 <= nValue && nValue <= 6))
++// 			{
++// 				return FALSE;
++// 			}
++
++// 			u8 uchValue = nValue + 73 + 0x30;
++
++// 			u8 nRegL = Jack == JackSpeaker ? 40 : 2;
++
++// 			if (   Channel == ChannelLeft
++// 			    || Channel == ChannelAll)
++// 			{
++// 				if (!WriteReg (nRegL, 0x100 | uchValue))
++// 				{
++// 					return FALSE;
++// 				}
++// 			}
++
++// 			if (   Channel == ChannelRight
++// 			    || Channel == ChannelAll)
++// 			{
++// 				if (!WriteReg (nRegL + 1, 0x100 | uchValue))
++// 				{
++// 					return FALSE;
++// 				}
++// 			}
++
++// 			return TRUE;
++// 		}
++// 		break;
++
++// 	case ControlALC:
++// 		if (   IsInputJack (Jack)
++// 		    && Channel == ChannelAll)
++// 		{
++// 			if (nValue)
++// 			{
++// 				// Ensure that left and right input volumes are the same
++// 				m_uchInVolume[1] = m_uchInVolume[0];
++// 				if (!WriteReg (1, 0x100 | m_uchInVolume[1]))
++// 				{
++// 					return FALSE;
++// 				}
++
++// 				return WriteReg (17, 0x1FB);
++// 			}
++// 			else
++// 			{
++// 				return WriteReg (17, 0x00B);
++// 			}
++// 		}
++// 		break;
++
++// 	default:
++// 		break;
++// 	}
++
++// 	return FALSE;
++// }
++
++// boolean CWM8960SoundController::WriteReg (u8 nReg, u16 nValue)
++// {
++// 	assert (nReg <= 0x7F);
++// 	assert (nValue <= 0x1FF);
++// 	const u8 Cmd[] = { (u8) ((nReg << 1) | (nValue >> 8)), (u8) nValue };
++
++// 	assert (m_pI2CMaster);
++// 	assert (m_uchI2CAddress);
++// 	return m_pI2CMaster->Write (m_uchI2CAddress, Cmd, sizeof Cmd) == sizeof Cmd;
++// }
+diff --git a/lib/usb/dwhcidevice.cpp b/lib/usb/dwhcidevice.cpp
+index 6d75fb1eea86c81603302310ffbb4223d39fcf4d..fa2ac741bc154b41fae0edabf4d6f562b871d1aa 100644
+--- a/lib/usb/dwhcidevice.cpp
++++ b/lib/usb/dwhcidevice.cpp
+@@ -793,6 +793,29 @@ boolean CDWHCIDevice::TransferStageAsync (CUSBRequest *pURB, boolean bIn, boolea
+ #ifndef USE_USB_SOF_INTR
+ 	StartTransaction (pStageData);
+ #else
++#ifdef USB_NOSPLIT_BULK_IMMEDIATE
++	if (   CKernelOptions::Get ()->GetUSBBoost ()
++	    && !pStageData->IsSplit ()
++	    && !pStageData->IsPeriodic ())
++	{
++		nChannel = AllocateChannel ();
++		if (nChannel < m_nChannels)
++		{
++			pStageData->SetChannelNumber (nChannel);
++
++			assert (m_pStageData[nChannel] == 0);
++			m_pStageData[nChannel] = pStageData;
++
++			EnableChannelInterrupt (nChannel);
++			StartTransaction (pStageData);
++		}
++		else
++		{
++			QueueTransaction (pStageData);
++		}
++	}
++	else
++#endif
+ 	QueueTransaction (pStageData);
+ #endif
+ 	
+@@ -1036,11 +1059,7 @@ void CDWHCIDevice::ChannelInterruptHandler (unsigned nChannel)
+ 
+ 		FreeChannel (nChannel);
+ 
+-#ifndef USE_USB_FIQ
+-		pURB->CallCompletionRoutine ();
+-#else
+-		m_CompletionQueue.Enqueue (pURB);
+-#endif
++		CompleteRequest (pURB);
+ 
+ 		return;
+ 	}
+@@ -1183,11 +1202,7 @@ void CDWHCIDevice::ChannelInterruptHandler (unsigned nChannel)
+ 
+ 		FreeChannel (nChannel);
+ 
+-#ifndef USE_USB_FIQ
+-		pURB->CallCompletionRoutine ();
+-#else
+-		m_CompletionQueue.Enqueue (pURB);
+-#endif
++		CompleteRequest (pURB);
+ 		break;
+ 
+ 	case StageStateStartSplit:
+@@ -1208,11 +1223,7 @@ void CDWHCIDevice::ChannelInterruptHandler (unsigned nChannel)
+ 
+ 			FreeChannel (nChannel);
+ 
+-#ifndef USE_USB_FIQ
+-			pURB->CallCompletionRoutine ();
+-#else
+-			m_CompletionQueue.Enqueue (pURB);
+-#endif
++			CompleteRequest (pURB);
+ 			break;
+ 		}
+ 
+@@ -1258,11 +1269,7 @@ void CDWHCIDevice::ChannelInterruptHandler (unsigned nChannel)
+ 
+ 			FreeChannel (nChannel);
+ 
+-#ifndef USE_USB_FIQ
+-			pURB->CallCompletionRoutine ();
+-#else
+-			m_CompletionQueue.Enqueue (pURB);
+-#endif
++			CompleteRequest (pURB);
+ 			break;
+ 		}
+ 		
+@@ -1316,11 +1323,7 @@ void CDWHCIDevice::ChannelInterruptHandler (unsigned nChannel)
+ 
+ 					FreeChannel (nChannel);
+ 
+-#ifndef USE_USB_FIQ
+-					pURB->CallCompletionRoutine ();
+-#else
+-					m_CompletionQueue.Enqueue (pURB);
+-#endif
++					CompleteRequest (pURB);
+ 				}
+ 				else
+ 				{
+@@ -1355,11 +1358,7 @@ void CDWHCIDevice::ChannelInterruptHandler (unsigned nChannel)
+ 
+ 		FreeChannel (nChannel);
+ 
+-#ifndef USE_USB_FIQ
+-		pURB->CallCompletionRoutine ();
+-#else
+-		m_CompletionQueue.Enqueue (pURB);
+-#endif
++		CompleteRequest (pURB);
+ 		break;
+ 
+ 	default:
+@@ -1579,6 +1578,24 @@ void CDWHCIDevice::TimerStub (TKernelTimerHandle /* hTimer */, void *pParam, voi
+ 
+ #endif
+ 
++void CDWHCIDevice::CompleteRequest (CUSBRequest *pURB)
++{
++	assert (pURB != 0);
++
++#ifndef USE_USB_FIQ
++	pURB->CallCompletionRoutine ();
++#else
++	if (pURB->IsCompleteImmediately ())
++	{
++		pURB->CallCompletionRoutine ();
++	}
++	else
++	{
++		m_CompletionQueue.Enqueue (pURB);
++	}
++#endif
++}
++
+ #ifdef USE_USB_FIQ
+ 
+ void CDWHCIDevice::InterruptHandler2 (void)
+diff --git a/lib/usb/gadget/dwusbgadget.cpp b/lib/usb/gadget/dwusbgadget.cpp
+index c6a3c63155737507eb246ed22b0cca128b40f036..022cca8008d1860eea52633429dd1adb81bbe14f 100644
+--- a/lib/usb/gadget/dwusbgadget.cpp
++++ b/lib/usb/gadget/dwusbgadget.cpp
+@@ -77,6 +77,7 @@ boolean CDWUSBGadget::Initialize (boolean bScanDevices)
+ 	    && Model != MachineModelZero
+ 	    && Model != MachineModelZeroW
+ 	    && Model != MachineModelZero2W
++	    && Model != MachineModelCM0
+ 	    && Model != MachineModel3APlus
+ 	    && Model != MachineModel4B
+ 	    && Model != MachineModel400)
+diff --git a/lib/usb/usbmidi.cpp b/lib/usb/usbmidi.cpp
+index 845d471b6a684789d39e2e54bb52c284325a7317..67d28ea1a8a53c9ca2653f8b2ed65dcdfa2c57f4 100644
+--- a/lib/usb/usbmidi.cpp
++++ b/lib/usb/usbmidi.cpp
+@@ -40,6 +40,51 @@ static const unsigned cin_to_length[] = {
+ 	0, 0, 2, 3, 3, 1, 2, 3, 3, 3, 3, 3, 2, 2, 3, 1
+ };
+ 
++static boolean IsMIDIDataByte (u8 uchByte)
++{
++	return uchByte < 0x80;
++}
++
++static boolean IsValidEventPacket (const u8 *pPacket)
++{
++	assert (pPacket != 0);
++
++	u8 nCIN = pPacket[0] & 0x0F;
++	if (cin_to_length[nCIN] == 0)
++	{
++		return FALSE;
++	}
++
++	switch (nCIN)
++	{
++	case 0x2:	// 2-byte system common
++		return    (pPacket[1] == 0xF1 || pPacket[1] == 0xF3)
++		       && IsMIDIDataByte (pPacket[2]);
++
++	case 0x3:	// 3-byte system common
++		return    pPacket[1] == 0xF2
++		       && IsMIDIDataByte (pPacket[2])
++		       && IsMIDIDataByte (pPacket[3]);
++
++	case 0x8:	// note off
++	case 0x9:	// note on
++	case 0xA:	// poly key pressure
++	case 0xB:	// control change
++	case 0xE:	// pitch bend
++		return    (pPacket[1] >> 4) == nCIN
++		       && IsMIDIDataByte (pPacket[2])
++		       && IsMIDIDataByte (pPacket[3]);
++
++	case 0xC:	// program change
++	case 0xD:	// channel pressure
++		return    (pPacket[1] >> 4) == nCIN
++		       && IsMIDIDataByte (pPacket[2]);
++
++	default:
++		return TRUE;
++	}
++}
++
+ CUSBMIDIDevice::CUSBMIDIDevice (void)
+ :	m_pPacketHandler (0),
+ 	m_pSendEventsHandler (0),
+@@ -243,7 +288,8 @@ boolean CUSBMIDIDevice::CallPacketHandler (u8 *pData, unsigned nLength)
+ 		// Follow the Linux driver's example and ignore packets with Cable
+ 		// Number == Code Index Number == 0, which some devices seem to
+ 		// generate as padding in spite of their status as reserved.
+-		if (pPacket[0] != 0)
++		if (   pPacket[0] != 0
++		    && IsValidEventPacket (pPacket))
+ 		{
+ 			if (m_pPacketHandler != 0)
+ 			{
+diff --git a/lib/usb/usbmidihost.cpp b/lib/usb/usbmidihost.cpp
+index 1d1f19b56d28e9b3baa36601a08db0b3cfe3aecf..e2733d22111b6f0b81566b8a23222a2cb438ae7e 100644
+--- a/lib/usb/usbmidihost.cpp
++++ b/lib/usb/usbmidihost.cpp
+@@ -40,9 +40,13 @@ CUSBMIDIHostDevice::CUSBMIDIHostDevice (CUSBFunction *pFunction)
+ 	m_pInterface (0),
+ 	m_pEndpointIn (0),
+ 	m_pEndpointOut (0),
+-	m_pPacketBuffer (0),
++	m_nNextBuffer (0),
+ 	m_hTimer (0)
+ {
++	for (unsigned i = 0; i < RXBufferCount; i++)
++	{
++		m_pPacketBuffer[i] = 0;
++	}
+ }
+ 
+ CUSBMIDIHostDevice::~CUSBMIDIHostDevice (void)
+@@ -56,8 +60,11 @@ CUSBMIDIHostDevice::~CUSBMIDIHostDevice (void)
+ 	delete m_pInterface;
+ 	m_pInterface = 0;
+ 
+-	delete [] m_pPacketBuffer;
+-	m_pPacketBuffer = 0;
++	for (unsigned i = 0; i < RXBufferCount; i++)
++	{
++		delete [] m_pPacketBuffer[i];
++		m_pPacketBuffer[i] = 0;
++	}
+ 
+ 	delete m_pEndpointIn;
+ 	m_pEndpointIn = 0;
+@@ -123,9 +130,12 @@ boolean CUSBMIDIHostDevice::Configure (void)
+ 			m_usBufferSize -=   pEndpointDesc->wMaxPacketSize
+ 					  % CUSBMIDIDevice::EventPacketSize;
+ 
+-			assert (m_pPacketBuffer == 0);
+-			m_pPacketBuffer = new u8[m_usBufferSize];
+-			assert (m_pPacketBuffer != 0);
++			for (unsigned i = 0; i < RXBufferCount; i++)
++			{
++				assert (m_pPacketBuffer[i] == 0);
++				m_pPacketBuffer[i] = new u8[m_usBufferSize];
++				assert (m_pPacketBuffer[i] != 0);
++			}
+ 		}
+ 		else							// Output EP
+ 		{
+@@ -188,14 +198,23 @@ boolean CUSBMIDIHostDevice::SendEventsHandler (const u8 *pData, unsigned nLength
+ boolean CUSBMIDIHostDevice::StartRequest (void)
+ {
+ 	assert (m_pEndpointIn != 0);
+-	assert (m_pPacketBuffer != 0);
++	assert (m_pPacketBuffer[m_nNextBuffer] != 0);
+ 
+ 	assert (m_usBufferSize > 0);
+-	CUSBRequest *pURB = new CUSBRequest (m_pEndpointIn, m_pPacketBuffer, m_usBufferSize);
++	u8 *pPacketBuffer = m_pPacketBuffer[m_nNextBuffer];
++	m_nNextBuffer = (m_nNextBuffer + 1) % RXBufferCount;
++
++	CUSBRequest *pURB = new CUSBRequest (m_pEndpointIn, pPacketBuffer, m_usBufferSize);
+ 	assert (pURB != 0);
+ 	pURB->SetCompletionRoutine (CompletionStub, 0, this);
+ 
++#ifdef USB_MIDI_FIQ_COMPLETION
++	pURB->SetCompleteImmediately ();
++#endif
++
++#ifndef USB_MIDI_RETRY_ON_NAK
+ 	pURB->SetCompleteOnNAK ();	// do not retry if request cannot be served immediately
++#endif
+ 
+ 	return GetHost ()->SubmitAsyncRequest (pURB);
+ }
+@@ -206,14 +225,22 @@ void CUSBMIDIHostDevice::CompletionRoutine (CUSBRequest *pURB)
+ 	assert (m_pInterface != 0);
+ 
+ 	boolean bRestart = FALSE;
++	u8 *pPacketBuffer = static_cast<u8 *> (pURB->GetBuffer ());
++	unsigned nResultLength = pURB->GetStatus () ? pURB->GetResultLength () : 0;
+ 
+ 	if (   pURB->GetStatus () != 0
+-	    && pURB->GetResultLength () % CUSBMIDIDevice::EventPacketSize == 0)
++	    && nResultLength % CUSBMIDIDevice::EventPacketSize == 0)
+ 	{
+-		assert (m_pPacketBuffer != 0);
+-
+-		bRestart = m_pInterface->CallPacketHandler (m_pPacketBuffer,
+-							    pURB->GetResultLength ());
++#ifdef USB_MIDI_EARLY_RESUBMIT
++		if (nResultLength > 0)
++		{
++			m_pInterface->CallPacketHandler (pPacketBuffer, nResultLength);
++			delete pURB;
++			StartRequest ();
++			return;
++		}
++#endif
++		bRestart = m_pInterface->CallPacketHandler (pPacketBuffer, nResultLength);
+ 	}
+ 	else if (   m_pInterface->GetAllSoundOffOnUSBError ()
+ 		 && !pURB->GetStatus ()
+diff --git a/lib/usb/usbrequest.cpp b/lib/usb/usbrequest.cpp
+index a3a07473346dde383680724ffa211fe859fd9a1c..889f623b04617d6196bcb6788c41a64183d994e7 100644
+--- a/lib/usb/usbrequest.cpp
++++ b/lib/usb/usbrequest.cpp
+@@ -32,7 +32,8 @@ CUSBRequest::CUSBRequest (CUSBEndpoint *pEndpoint, void *pBuffer, u32 nBufLen, T
+ 	m_pCompletionRoutine (0),
+ 	m_pCompletionParam (0),
+ 	m_pCompletionContext (0),
+-	m_bCompleteOnNAK (FALSE)
++	m_bCompleteOnNAK (FALSE),
++	m_bCompleteImmediately (FALSE)
+ {
+ 	assert (m_pEndpoint != 0);
+ 	assert (m_pBuffer != 0 || m_nBufLen == 0);
+@@ -156,4 +157,14 @@ boolean CUSBRequest::IsCompleteOnNAK (void) const
+ 	return m_bCompleteOnNAK;
+ }
+ 
++void CUSBRequest::SetCompleteImmediately (void)
++{
++	m_bCompleteImmediately = TRUE;
++}
++
++boolean CUSBRequest::IsCompleteImmediately (void) const
++{
++	return m_bCompleteImmediately;
++}
++
+ IMPLEMENT_CLASS_ALLOCATOR (CUSBRequest)
